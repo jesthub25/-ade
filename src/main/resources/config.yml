@@ -1,0 +1,137 @@
+# ============================================================
+#  Iade - Ölüm listesi ve iade sistemi
+#  Renk kodları: & veya § kullanılabilir.
+#  Değişiklikten sonra: /olumlistereload  (veya /olumliste reload)
+# ============================================================
+
+# Ölüm listesinin aktif olacağı dünyalar (büyük-küçük harf fark etmez)
+aktif-dunyalar:
+  - "world"
+  - "world_nether"
+  - "yayla"
+
+# true ise keepInventory açıkken gerçekleşen ölümler kaydedilmez (çift eşya iadesini önler)
+keepinventory-atla: true
+
+# Tarihlerde kullanılacak saat dilimi. Boş bırakırsanız sunucunun saati kullanılır.
+saat-dilimi: "Europe/Istanbul"
+
+# ------------------------------------------------------------
+# Oyuncu menüsü (/olumliste)
+# ------------------------------------------------------------
+gui-baslik: "&8» &cÖlüm Listeniz"
+kagit-adi: "&e&lHileci Bildirimi: %katil%"
+lore-mesajlari:
+  - "&7Bu oyuncu tarafından katledildiniz."
+  - "&7Katiliniz &cHile&7 sebebiyle banlandı!"
+  - "&7"
+  - "&eSebep: &f%sebep%"
+  - "&eTarih: &f%tarih%"
+  - "&eİade Durumu: %iade%"
+  - "&7"
+  - "&cDiscord üzerinden destek talebi açıp"
+  - "&cbu SS'i ileterek haklarınızı talep edin."
+
+# ------------------------------------------------------------
+# Yetkili menüsü (/olumliste liste)  —  yetki: iade.liste
+# ------------------------------------------------------------
+# Listedeki TÜM katilleri oyuncu kafası olarak gösterir. Kafaların üzerine gelince ban sebebi,
+# banlayan yetkili, ban süresi, öldürülen oyuncular ve listeden silinme zamanı görünür.
+# Menü 54 slottur: üst 45 slot kafa, alt satır sayfa/filtre/yenile/kapat düğmeleri.
+liste-gui:
+  # Başlıkta kullanılabilir: %sayfa% %toplam% %filtre% %adet%  (en fazla 32 karakter, fazlası kırpılır)
+  baslik: "&8» &cÖlüm Listesi &7%sayfa%/%toplam%"
+  # Menü açılışındaki filtre: tumu | banli | banlisiz
+  # "banlisiz" = ölüm listesine girmiş ama henüz banlı işaretlenmemiş katiller
+  varsayilan-filtre: "tumu"
+  # true: en yakın ban ilk slotlarda (1,2,3,4...), eski banlar sonda.  false: tersi
+  yeniden-eskiye: true
+  # Kafa açıklamasında kaç kurban adı yazılsın (0 = hiç yazma, en fazla 20)
+  kurban-gosterim-siniri: 5
+
+# ------------------------------------------------------------
+# Kayıt saklama süreleri (saat) — süresi dolan kayıt otomatik silinir, menülerden de kalkar
+# ------------------------------------------------------------
+# Katili henüz banlanmamış kayıtlar, ölüm anından itibaren bu kadar saat sonra silinir.
+silinme-suresi-saat: 48
+# Katili banlanmış ve iadesi henüz onaylanmamış kayıtlar, banlanma anından itibaren bu kadar saat sonra silinir.
+banli-saklama-suresi-saat: 48
+# İadesi onaylanmış ama oyuncu tarafından ALINMAMIŞ kayıtlar, onay anından itibaren bu kadar saat sonra silinir.
+iade-alma-suresi-saat: 48
+# İadesini almış kayıtların silinmeden önce tutulacağı süre.
+alindi-saklama-suresi-saat: 24
+# Süresi dolan kayıtları silen görevin çalışma aralığı (dakika). Dolan kayıtlar menülerde zaten görünmez.
+temizlik-araligi-dakika: 5
+
+# ------------------------------------------------------------
+# Ban sistemi entegrasyonu
+# ------------------------------------------------------------
+# Eklenti, katilin banlanıp banlanmadığını birden fazla katmanla kontrol eder:
+#   1) Kurulu ban sisteminin kendi API'si: Vanilla, EssentialsX, LiteBans, AdvancedBan, BanManager
+#   2) Ban ve unban komutlarını dinleme (komutun varlığı ve kullananın yetkisi doğrulanır)
+#   3) Giriş dinleme: takip edilen katil sunucuya girerken "banlı" sonucu alırsa (LibertyBans, CMI,
+#      MaxBans... gibi API'si olmayan HERHANGİ bir ban eklentisi dahil) otomatik işaretlenir
+#   4) Arka planda periyodik tarama (anti-cheat eklentilerinin gizli komutla verdiği banları yakalar)
+#   5) /olumliste, /iadelerim, /iadever ve /olumliste liste açılırken anlık kontrol
+# Kurulu olmayan ban eklentileri otomatik atlanır; hata vermez.
+# Hiçbir şekilde otomatik yakalanamayan bir sistem için: /olumlistebanla <oyuncu> [sebep]
+ban-sistemi:
+  vanilla: true        # Vanilla / Bukkit ban listesi (CMI ve çoğu anti-cheat dahil)
+  essentialsx: true    # EssentialsX (/ban, /tempban, /banip). Kurulu değilse otomatik atlanır
+  litebans: true       # LiteBans
+  advancedban: true    # AdvancedBan
+  banmanager: true     # BanManager
+
+  # Ban ve unban komutlarını dinle
+  komut-dinleme: true
+  # Giriş engelini dinle (herhangi bir ban eklentisinin verdiği "banlı" girişi yakalar)
+  giris-dinleme: true
+  # Komut kullananın yetkisi kontrol edilir. API ile doğrulanamayan ban eklentilerinde
+  # (ör. LibertyBans, CMI) yetkili tarafından verilen komut güvenilir kabul edilsin mi?
+  komut-guveni: true
+
+  # Unban kontrolü
+  # Yetkili /unban veya /pardon yazarsa, henüz iade onaylanmamış kayıtların "banlı" işareti kaldırılsın mı?
+  unban-isareti-kaldir: true
+  # Banı API ile doğrulanmış ve iadesi onaylanmamış kayıtlar için arka planda unban taraması.
+  # Ban, işaretlendikten sonra bu süre (saat) içinde kaldırılırsa (yanlış ban düzeltmesi) işaret geri alınır.
+  # Süre geçtikten sonra kaldırılan veya süresi dolan geçici banlar işareti etkilemez.
+  # (Kayıt zaten "banli-saklama-suresi-saat" dolunca silindiği için fiilen ikisinden kısası geçerlidir.)
+  # Bir ban sistemi hata verirse (belirsiz durum) işaret asla geri alınmaz.
+  unban-taramasi: true
+  unban-taramasi-penceresi-saat: 72
+
+  # Arka plan taraması (ban + unban)
+  tarama-aktif: true
+  tarama-araligi-saniye: 60
+
+  # Dinlenecek komutlar (küçük harfle yazın; "eklenti:komut" biçimi otomatik tanınır).
+  # İki kelimelik komutlar da yazılabilir (ör. "cmi ban").
+  ban-komutlari:
+    - "ban"
+    - "tempban"
+    - "ipban"
+    - "tempipban"
+    - "tempbanip"
+    - "banip"
+    - "ban-ip"
+    - "pban"
+    - "tban"
+    - "cban"
+    - "sban"
+    - "punish"
+    - "gban"
+    - "cmi ban"
+    - "cmi tempban"
+  unban-komutlari:
+    - "unban"
+    - "pardon"
+    - "unbanip"
+    - "pardonip"
+    - "pardon-ip"
+    - "cmi unban"
+
+# ------------------------------------------------------------
+# Discord Webhook (boş bırakırsanız webhook gönderilmez)
+# ------------------------------------------------------------
+webhook-url: ""

@@ -1,0 +1,176 @@
+# ============================================================
+#  Iade - Mesajlar
+#  Renk kodları: & veya § kullanılabilir.
+# ============================================================
+
+prefix: "&6ɪᴀᴅᴇ &8&l► "
+
+# --- Genel ---
+no-permission: "%prefix%&cBu komutu kullanmak için yetkiniz yok!"
+only-players: "&cBu komut sadece oyun içerisinden kullanılabilir!"
+player-not-found: "%prefix%&cOyuncu bulunamadı! Kayıtlarda bu isimde bir oyuncu yok."
+opening: "%prefix%&aÖlüm listeniz açılıyor..."
+reload-success: "%prefix%&aAyarlar ve mesajlar yeniden yüklendi. &7Ban sistemleri: &f%sistemler%"
+reload-warning: "%prefix%&e! &7%uyari%"
+reload-fail: "%prefix%&c%dosya% okunamadı: &f%hata% &c— Eski ayarlar korundu, dosyayı düzeltip tekrar deneyin."
+
+# --- İade ---
+no-refund: "%prefix%&cMevcut bir iadeniz bulunmamaktadır!"
+refund-success: "%prefix%&aİade eşyalarınızı başarıyla aldınız!"
+refund-approved: "%prefix%&aİade onaylandı! Oyuncu /iadelerim yazarak eşyalarını alabilir."
+refund-already-given: "%prefix%&cBu ölüm için iade zaten yapılmış!"
+refund-not-found: "%prefix%&cBu oyuncunun iade edilebilir bir ölüm kaydı bulunmamaktadır!"
+victim-notified: "%prefix%&aHileli ölümünüz için iadeniz onaylandı! /iadelerim yazarak eşyalarınızı alabilirsiniz."
+iade-esya-yok: "%prefix%&eBu ölüm kaydında iade edilecek eşya bulunmuyor."
+iade-envanter-dolu: "%prefix%&cEnvanterinde yeterli boş yer yok! İade için en az &e%adet% &cboş slot açıp tekrar dene."
+iade-hata: "%prefix%&cİade eşyaları okunamadı. Lütfen bir yetkiliye bildirin."
+
+# --- Işınlanma ---
+teleport-success: "%prefix%&aÖlüm konumuna ışınlandınız."
+teleport-fail: "%prefix%&cÖlümün gerçekleştiği dünya bulunamadı!"
+
+# --- Komut kullanımları ---
+usage-olumliste: "%prefix%&cKullanım: /olumliste &7[liste|reload]"
+usage-iadever: "%prefix%&cKullanım: /iadever <oyuncu>"
+usage-sil: "%prefix%&cKullanım: /olumlistesil <oyuncu>"
+usage-banla: "%prefix%&cKullanım: /olumlistebanla <oyuncu> [sebep]"
+
+# --- Silme / Elle banlama ---
+sil-success: "%prefix%&e%oyuncu% &aadlı oyuncunun ölüm listesi kalıcı olarak sıfırlandı! &7(%adet% kayıt)"
+sil-not-found: "%prefix%&c%oyuncu% adlı oyuncuya ait silinecek kayıt bulunamadı!"
+banla-success: "%prefix%&e%oyuncu% &aadlı katile ait &e%adet% &akayıt banlı olarak işaretlendi."
+banla-not-found: "%prefix%&c%oyuncu% adlı katile ait işaretlenecek kayıt bulunamadı!"
+manuel-ban-sebebi: "Manuel işaretlendi"
+
+# --- GUI başlıkları (Minecraft eski sürümlerde en fazla 32 karakter destekler) ---
+iade-al-gui-baslik: "&dİadeleriniz"
+iadever-list-gui-baslik: "&dİadeler: %oyuncu%"
+iade-detay-gui-baslik: "&dİade Detay: %oyuncu%"
+
+# --- GUI öğeleri ---
+konum-kaydi-yok: "&c&lÖldüğü Konum Bilinmiyor"
+shulker-ver-buton: "&a&lShulker Kutusu Olarak Ver"
+shulker-ver-lore:
+  - "&7Bu ölümdeki tüm eşyaları"
+  - "&7shulker kutusu içinde"
+  - "&7oyuncuya teslim eder."
+isinlan-buton: "&e&lÖldüğü Yere Işınlan"
+isinlan-lore:
+  - "&7Oyuncunun öldüğü konuma"
+  - "&7ışınlanırsınız."
+  - ""
+  - "&7Konum: &f%dunya% (%x%, %y%, %z%)"
+kapat-buton: "&c&lKapat"
+kapat-lore:
+  - "&7Menüyü kapatır."
+onceki-sayfa: "&e&l« Önceki Sayfa"
+sonraki-sayfa: "&e&lSonraki Sayfa »"
+sayfa-lore:
+  - "&7Sayfa: &f%sayfa%&7/&f%toplam%"
+
+kayit-yok-baslik: "&cKayıt Bulunmamaktadır"
+kayit-yok-lore:
+  - "&7Yakın zamanda katledildiğiniz hiçbir"
+  - "&7oyuncu hile sebebiyle yasaklanmadı."
+
+iade-shulker-adi: "&dİade Eşyaları (%tarih%)"
+claim-item-lore:
+  - "&7Katil: &c%katil%"
+  - "&7Sebep: &f%sebep%"
+  - "&7Durum: &aAlınabilir"
+  - ""
+  - "&aTıklayarak tüm eşyalarınızı"
+  - "&ashulker kutusu olarak teslim alın."
+admin-kafa-baslik: "&eÖlüm Tarihi: &f%tarih%"
+admin-kafa-lore:
+  - "&7Katil: &c%katil%"
+  - "&7Sebep: &f%sebep%"
+  - "&7İade Durumu: %iade%"
+  - ""
+  - "&aEşyaları incelemek ve iade etmek için tıklayın."
+
+# --- İade durumu metinleri ---
+iade-bekleniyor-text: "&eBekleniyor"
+iade-verildi-text: "&aVerildi"
+iade-alindi-text: "&bAlındı"
+
+# ============================================================
+#  Yetkili menüsü: /olumliste liste
+# ============================================================
+liste-aciliyor: "%prefix%&aÖlüm listesi hazırlanıyor, ban durumları kontrol ediliyor..."
+liste-yenileniyor: "%prefix%&eBan durumları yeniden kontrol ediliyor..."
+
+liste-bos-baslik: "&cListe boş"
+liste-bos-lore:
+  - "&7Bu filtreye uyan kayıt yok."
+  - "&7Filtre düğmesiyle diğer"
+  - "&7görünümlere bakabilirsiniz."
+
+# Kafa başlıkları (%oyuncu% = katilin adı)
+liste-kafa-baslik-banli: "&c%oyuncu%"
+liste-kafa-baslik-banlisiz: "&e%oyuncu%"
+
+# Banlı katilin kafasına gelince görünen satırlar
+liste-kafa-lore-banli:
+  - "&7Durum: &cBanlı"
+  - "&7Ban sebebi: &f%sebep%"
+  - "&7Banlayan: &f%banlayan%"
+  - "&7Ban süresi: %sure%"
+  - "&7Ban tarihi: &f%ban_tarihi%"
+  - "&7Ban sistemi: &f%kaynak%"
+  - ""
+  - "&7Öldürdüğü oyuncu: &f%olum_sayisi% &8(&7%kurbanlar%&8)"
+  - "&7Son öldürme: &f%son_olum%"
+  - "&7İade: &e%bekleyen% bekleyen &8| &a%onayli% onaylı &8| &b%alinan% alınan"
+  - "&7Listeden silinme: &f%silinme% &8(&7%silinme_kalan%&8)"
+  - ""
+  - "&aTıkla: &7ban durumunu yeniden kontrol et"
+
+# Henüz banlı işaretlenmemiş (takip edilen) katilin kafasına gelince görünen satırlar
+liste-kafa-lore-banlisiz:
+  - "&7Durum: &eBanlı değil &8(takip ediliyor)"
+  - ""
+  - "&7Öldürdüğü oyuncu: &f%olum_sayisi% &8(&7%kurbanlar%&8)"
+  - "&7Son öldürme: &f%son_olum%"
+  - "&7İade: &e%bekleyen% bekleyen"
+  - "&7Listeden silinme: &f%silinme% &8(&7%silinme_kalan%&8)"
+  - ""
+  - "&7Oyuncuyu banladıysanız ve hâlâ burada"
+  - "&7&eBanlı değil &7görünüyorsa tıklayın."
+  - "&7Bulunamazsa: &f/olumlistebanla %oyuncu%"
+  - "&aTıkla: &7ban durumunu yeniden kontrol et"
+
+# Alt satır düğmeleri
+filtre-buton: "&6&lFiltre: &f%filtre%"
+filtre-lore:
+  - "&7Gösterilen oyuncu: &f%adet%"
+  - ""
+  - "&aTıkla: &7sonraki filtre &f%sonraki%"
+filtre-tumu: "&fTümü"
+filtre-banli: "&cBanlılar"
+filtre-banlisiz: "&eBanlı değil"
+yenile-buton: "&b&lBan Durumunu Yenile"
+yenile-lore:
+  - "&7Listedeki tüm katillerin ban"
+  - "&7durumunu hemen yeniden kontrol eder."
+
+# Ban süresi gösterimi
+ban-sure-kalici: "&cKalıcı"
+ban-sure-gecici: "&f%bitis% &7(kalan: &e%kalan%&7)"
+ban-sure-doldu: "&7Süresi doldu &8(%bitis%)"
+ban-sure-metin: "&f%sure%"
+ban-sure-bilinmiyor: "&7Bilinmiyor"
+
+# Süre birimleri (örn. "2g 5s", "3s 20dk")
+birim-gun: "g"
+birim-saat: "s"
+birim-dakika: "dk"
+kalan-az: "<1dk"
+
+bilinmiyor: "&7Bilinmiyor"
+kurban-fazla: "&8+%adet% daha"
+
+# Ban kaynağı adları (LiteBans, AdvancedBan, BanManager, EssentialsX, Vanilla aynen yazılır)
+kaynak-komut: "Ban komutu"
+kaynak-giris: "Giriş engeli"
+kaynak-manuel: "Elle işaretlendi"

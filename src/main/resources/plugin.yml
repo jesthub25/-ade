@@ -1,0 +1,90 @@
+name: Iade
+version: '${project.version}'
+main: com.iade.Iade
+api-version: '1.20'
+authors: [Jestron]
+description: Hilecilere olen oyuncularin haklarini koruyan olum listesi ve iade sistemi. (Spigot/Paper/Purpur 1.20.1 ve uzeri)
+
+# Bilinen TUM ban sistemleri ve ban komutu gonderen anti-cheat'ler. Kuruluysa bu eklenti onlardan
+# SONRA yuklenir; ban durumu onlarin API'sinden / ban komutlarindan / giris engelinden okunur.
+# Kurulu olmayanlar sessizce atlanir (hata vermez).
+softdepend:
+  # Ban eklentileri
+  - LiteBans
+  - AdvancedBan
+  - BanManager
+  - LibertyBans
+  - Essentials
+  - EssentialsX
+  - CMI
+  - CMILib
+  - MaxBans
+  - UltraBans
+  - BanHammer
+  - SuperBans
+  - AdvancedBanX
+  - BungeeAdminTools
+  # Ban komutu gonderen anti-cheat'ler
+  - Vulcan
+  - Matrix
+  - Spartan
+  - GrimAC
+  - NoCheatPlus
+  - Intave
+  - AAC
+  - Themis
+  - Negativity
+  - AntiCheatReloaded
+  - Verus
+  - Polar
+
+commands:
+  olumliste:
+    description: Olum listenizi gosterir. "liste" yetkili menusu, "reload" ayarlari yeniler.
+    aliases: [iade, ölümliste, deathlist, olmuliste]
+    usage: /<command> [liste|reload]
+  olumlistesil:
+    description: Bir oyuncunun olum listesi verisini siler.
+    aliases: [ölümlistesil]
+    usage: /<command> <oyuncu>
+  iadelerim:
+    description: Iade edilebilir esyalarinizi goruntuler ve alirsiniz.
+    aliases: [refunds]
+    usage: /<command>
+  iadever:
+    description: Bir oyuncunun olum kaydindaki esyalarini iade edersiniz.
+    usage: /<command> <oyuncu>
+  olumlistebanla:
+    description: Desteklenmeyen ban sistemleri icin bir katili elle banli olarak isaretler.
+    aliases: [ölümlistebanla]
+    usage: /<command> <oyuncu> [sebep]
+  olumlistereload:
+    description: Ayar ve mesaj dosyalarini yeniden yukler.
+    aliases: [ölümlistereload]
+    usage: /<command>
+
+permissions:
+  iade.liste:
+    description: /olumliste liste yetkili menusunu (tum katiller, ban bilgileri) acabilir.
+    default: op
+  iade.iadever:
+    description: /iadever komutunu ve iade onaylamayi kullanabilir.
+    default: op
+  iade.sil:
+    description: /olumlistesil komutunu kullanabilir.
+    default: op
+  iade.banla:
+    description: /olumlistebanla komutunu kullanabilir.
+    default: op
+  iade.reload:
+    description: /olumlistereload komutunu kullanabilir.
+    default: op
+  iade.*:
+    description: Tum Iade yetkileri.
+    default: op
+    children:
+      iade.liste: true
+      iade.iadever: true
+      iade.sil: true
+      iade.banla: true
+      iade.reload: true
