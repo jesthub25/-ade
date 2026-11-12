@@ -40,6 +40,8 @@ public final class KillerEntry {
     public long removeAt;
     /** Ayni IP supheli (suresi dolmamis) kayit sayisi. */
     public int sameIp;
+    /** Ard arda oldurme supheli (suresi dolmamis) kayit sayisi. */
+    public int ardarda;
     /** En yeni kayit (silah / olum turu / mesafe bilgisi bundan okunur). */
     public DeathRecord latest;
     public final List<String> victims = new ArrayList<String>();
@@ -147,6 +149,9 @@ public final class KillerEntry {
         }
         if (r.sameIp) {
             sameIp++;
+        }
+        if (r.ardarda > 0) {
+            ardarda++;
         }
         String victim = r.victimName == null ? "?" : r.victimName;
         if (victimSet.add(victim.toLowerCase(Locale.ROOT))) {

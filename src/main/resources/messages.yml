@@ -30,7 +30,7 @@ teleport-success: "%prefix%&aÖlüm konumuna ışınlandınız."
 teleport-fail: "%prefix%&cÖlümün gerçekleştiği dünya bulunamadı!"
 
 # --- Komut kullanımları ---
-usage-olumliste: "%prefix%&cKullanım: /olumliste &7[liste|gecmis|reload]"
+usage-olumliste: "%prefix%&cKullanım: /olumliste &7[liste|gecmis|ayarlar|reload]"
 usage-iadever: "%prefix%&cKullanım: /iadever <oyuncu>"
 usage-sil: "%prefix%&cKullanım: /olumlistesil <oyuncu>"
 usage-banla: "%prefix%&cKullanım: /olumlistebanla <oyuncu> [sebep]"
@@ -91,6 +91,7 @@ admin-kafa-lore:
 
 # --- İade durumu metinleri ---
 iade-bekleniyor-text: "&eBekleniyor"
+iade-inceleme-text: "&6İncelemede (elle onay)"
 iade-verildi-text: "&aVerildi"
 iade-alindi-text: "&bAlındı"
 
@@ -258,6 +259,7 @@ gecmis-lore:
   - "&7Eşya sayısı: &f%esya%"
   - "&7Ölüm zamanı: &f%olum_zamani%"
 gecmis-ip-satir: "&c! Aynı IP şüphesi vardı"
+gecmis-ardarda-satir: "&6! Ard arda öldürme şüphesi vardı"
 gecmis-yetkili-oyuncu: "Oyuncunun kendisi"
 gecmis-yetkili-yok: "-"
 gecmis-geri-buton: "&e&l« Yetkili Menüsü"
@@ -288,6 +290,7 @@ istatistik-kayitlar-lore:
   - "&7Bekleyen: &e%bekleyen%"
   - "&7Onaylı (alınmayı bekleyen): &a%onayli%"
   - "&7Alınan: &b%alinan%"
+  - "&7Ard arda şüphesi: &c%ardarda%"
 istatistik-katiller-baslik: "&c&lKatiller ve Kurbanlar"
 istatistik-katiller-lore:
   - "&7Takip edilen katil: &f%katil%"
@@ -311,3 +314,117 @@ istatistik-ortalama-yok: "&7Veri yok"
 istatistik-geri-buton: "&e&l« Yetkili Menüsü"
 istatistik-geri-lore:
   - "&7Katil listesine döner."
+
+# ============================================================
+#  Ard arda öldürme koruması + elle inceleme (kilitli kayıtlar)
+# ============================================================
+# %adet% = zincirdeki ölüm sayısı, %dakika% = pencere süresi
+ardarda-engellendi-log: "Ard arda öldürme koruması: %kurban% / %katil% ölümü kaydedilmedi (zincir: %adet%)."
+yetkili-ardarda-uyari: "%prefix%&c! &7Bu kayıtlardan &c%adet% &7tanesi &card arda öldürme &7şüphesi taşıyor (iadeler elle incelenmeli)."
+liste-kafa-ardarda-uyari: "&c! Ard arda öldürme şüphesi: &f%adet% &ckayıt"
+olum-ardarda-uyari: "&c! Ard arda öldürme şüphesi (&f%adet% &cölümlük zincir)"
+olum-kilit-uyari: "&6Elle inceleme gerekir"
+
+# Kilitli (şüpheli) kayıtta onay düğmesi. %nedenler% satırı, aşağıdaki neden satırlarıyla değiştirilir.
+shulker-kilitli-buton: "&6&lElle İncele ve Onayla"
+shulker-kilitli-lore:
+  - "&7Bu kayıt şüpheli olduğu için tek tıkla"
+  - "&7onaylanamaz. Önce kaydı inceleyin:"
+  - "&7envanter, ölüm yeri ve sebep."
+  - ""
+  - "%nedenler%"
+  - ""
+  - "&eOnaylamak için &f%sure% sn &eiçinde"
+  - "&etekrar tıklayın."
+kilit-neden-ip: "&c! Katille aynı IP'den bağlanmış"
+kilit-neden-ardarda: "&c! Ard arda öldürme: &f%adet% &cölüm / &f%dakika% dk"
+kilit-neden-ardarda-ozet: "ard arda öldürme"
+kilit-neden-ip-ozet: "aynı IP"
+kilitli-uyari: "%prefix%&6Bu kayıt şüpheli: &c%nedenler%&6. Kaydı inceleyin (ışınlanabilir, envantere bakabilirsiniz). Elle onaylamak için &e%sure% sn &6içinde onay düğmesine tekrar tıklayın."
+kilitli-onaylandi-log: "Şüpheli kayıt elle onaylandı: %kurban% <- %katil% (%yetkili%, nedenler: %nedenler%)"
+
+# ============================================================
+#  Ayarlar menüsü: /olumliste ayarlar  (yetki: iade.ayarlar)
+# ============================================================
+ayarlar-baslik: "&8» &6Koruma Ayarları"
+ayarlar-buton: "&6&lKoruma Ayarları"
+ayarlar-buton-lore:
+  - "&7Korumaları ve özellikleri"
+  - "&7oyun içinden açıp kapatın."
+ayarlar-geri-buton: "&e&l« Yetkili Menüsü"
+ayarlar-geri-lore:
+  - "&7Katil listesine döner."
+ayarlar-bilgi-baslik: "&e&lBilgi"
+ayarlar-bilgi-lore:
+  - "&7Düğmelere tıklayarak ayarları"
+  - "&7değiştirebilirsiniz."
+  - ""
+  - "&7Değişiklik config.yml dosyasına"
+  - "&7yazılır ve hemen uygulanır."
+ayarlar-yazilamadi: "%prefix%&cAyar config.yml dosyasına yazılamadı: &f%hata%"
+ayarlar-log: "Ayar değiştirildi: %yol% = %deger% (%yetkili%)"
+ayar-baslik-korumalar: "&6&lKORUMALAR"
+ayar-baslik-ozellikler: "&b&lÖZELLİKLER"
+ayar-durum-acik: "&aAÇIK"
+ayar-durum-kapali: "&cKAPALI"
+ayar-mod-isaretle: "&eİşaretle"
+ayar-mod-kilitle: "&6Kilitle"
+ayar-mod-engelle: "&cEngelle"
+ayar-kapsam-ayni-kurban: "&fAynı kurban"
+ayar-kapsam-herkes: "&fHerkes"
+ayar-ipucu-ac: "&eTıkla: &fAç / Kapat"
+ayar-ipucu-dongu: "&eSol tık: &fsonraki &8| &eSağ tık: &fönceki"
+ayar-ipucu-sayi: "&eSol tık: &f+%adim% &8| &eSağ tık: &f-%adim%"
+ayar-dakika: "%sayi% dk"
+
+ayar-ip-aktif: "&b&lAynı IP Koruması: %deger%"
+ayar-ip-aktif-lore:
+  - "&7Kurban ve katil aynı IP'den"
+  - "&7bağlıysa ölüm şüpheli sayılır."
+ayar-ip-mod: "&b&lAynı IP Modu: %deger%"
+ayar-ip-mod-lore:
+  - "&eİşaretle&7: uyarı gösterilir"
+  - "&6Kilitle&7: uyarı + elle onay gerekir"
+  - "&cEngelle&7: ölüm hiç kaydedilmez"
+ayar-ardarda-aktif: "&b&lArd Arda Öldürme Koruması: %deger%"
+ayar-ardarda-aktif-lore:
+  - "&7Aynı katil kısa sürede aynı kurbanı"
+  - "&7tekrar tekrar öldürürse kayıtlar"
+  - "&7şüpheli sayılır (iade sömürüsü)."
+ayar-ardarda-mod: "&b&lArd Arda Modu: %deger%"
+ayar-ardarda-mod-lore:
+  - "&eİşaretle&7: uyarı gösterilir"
+  - "&6Kilitle&7: uyarı + elle onay gerekir"
+  - "&cEngelle&7: eşiği aşan ölümler kaydedilmez"
+ayar-ardarda-esik: "&b&lArd Arda Eşiği: &f%deger%"
+ayar-ardarda-esik-lore:
+  - "&7Zincir bu uzunluğa ulaşınca"
+  - "&7koruma devreye girer (2-50)."
+ayar-ardarda-pencere: "&b&lArd Arda Süresi: &f%deger%"
+ayar-ardarda-pencere-lore:
+  - "&7Zincir bu süre içindeki"
+  - "&7ölümlerden oluşur (1-1440 dk)."
+ayar-ardarda-kapsam: "&b&lArd Arda Kapsamı: %deger%"
+ayar-ardarda-kapsam-lore:
+  - "&fAynı kurban&7: yalnızca aynı kurbana"
+  - "&fHerkes&7: katilin tüm kurbanları sayılır"
+ayar-olum-bilgisi: "&b&lÖlüm Bilgisi: %deger%"
+ayar-olum-bilgisi-lore:
+  - "&7Silah, ölüm türü ve mesafe"
+  - "&7kaydedilir (yeni ölümler için)."
+ayar-giris-hatirlatma: "&b&lGiriş Hatırlatması: %deger%"
+ayar-giris-hatirlatma-lore:
+  - "&7Girişte onaylı iadesi olana"
+  - "&7adet ve kalan süreyi yazar."
+ayar-yetkili-bildirimi: "&b&lYetkili Bildirimi: %deger%"
+ayar-yetkili-bildirimi-lore:
+  - "&7Katil banlanınca yetkililere"
+  - "&7(ve Discord'a) haber verir."
+ayar-gecmis: "&b&lİade Geçmişi: %deger%"
+ayar-gecmis-lore:
+  - "&7Onay, alma ve silme işlemleri"
+  - "&7veritabanına kaydedilir."
+ayar-sesler: "&b&lSesler: %deger%"
+ayar-sesler-lore:
+  - "&7Menü ve bildirim seslerini"
+  - "&7topluca açar / kapatır."

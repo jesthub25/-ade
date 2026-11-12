@@ -53,6 +53,11 @@ public final class DeathRecord {
     public volatile double distance = -1D;
     /** Kurban ve katil ayni IP'den baglanmisti (IP saklanmaz, yalnizca bu isaret). */
     public volatile boolean sameIp;
+    /**
+     * Ard arda oldurme zinciri: 0 = sorun yok; 0'dan buyukse ayni katil bu kayitla birlikte (pencere icinde)
+     * bu kadar olum uretmisti. Yalnizca bu sayi saklanir.
+     */
+    public volatile int ardarda;
 
     /** Iade alma / islem sirasinda cift tiklamayi engeller. */
     public final AtomicBoolean busy = new AtomicBoolean(false);
@@ -79,6 +84,14 @@ public final class DeathRecord {
         this.z = z;
         this.yaw = yaw;
         this.pitch = pitch;
+    }
+
+    /**
+     * Kayit "kilitli" mi? Kilitli (supheli) kayit tek tikla onaylanamaz; yetkili once incelemeli ve onayi
+     * ikinci kez dogrulamalidir. Koruma kapatilirsa ya da modu "kilitle" degilse kayit kilitli sayilmaz.
+     */
+    public boolean isLocked(Settings s) {
+        return (s.ipKorumasiAktif && s.ipKilitle && sameIp) || (s.ardardaAktif && s.ardardaKilitle && ardarda > 0);
     }
 
     /** Ban bir ban sisteminin API'si ile dogrulandiysa true (unban taramasi sadece bunlara bakar). */

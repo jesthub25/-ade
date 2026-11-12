@@ -1,6 +1,6 @@
 # Iade
 
-**Sürüm:** 1.1.0 · **Sunucu:** Spigot / Paper / Purpur **1.20.1 ve üzeri** · **Java:** 17+ (sunucunun Java'sı)
+**Sürüm:** 1.2.0 · **Sunucu:** Spigot / Paper / Purpur **1.20.1 ve üzeri** · **Java:** 17+ (sunucunun Java'sı)
 
 Bir oyuncu başka bir oyuncu tarafından öldürülünce envanteri kaydedilir. Katil banlanırsa kurban
 `/olumliste` ile kaydı görür, yetkili `/iadever` ile onaylar, kurban `/iadelerim` ile eşyalarını
@@ -17,7 +17,7 @@ shulker kutusu olarak geri alır.
 mvn clean package
 ```
 
-Çıktı: `target/Iade-1.1.0.jar` (JDK 17 gerekir). Eklenti 1.20.1 API'sine karşı derlenir; yalnızca 1.20.1'den
+Çıktı: `target/Iade-1.2.0.jar` (JDK 17 gerekir). Eklenti 1.20.1 API'sine karşı derlenir; yalnızca 1.20.1'den
 bu yana değişmeden kalan çağrıları kullanır ve InventoryView gibi sürümler arasında uyumsuz sınıflar üzerinde
 metot çağırmaz, bu yüzden 1.20.x ve 1.21.x sunucularında aynı jar çalışır.
 
@@ -28,6 +28,7 @@ metot çağırmaz, bu yüzden 1.20.x ve 1.21.x sunucularında aynı jar çalış
 | `/olumliste` | `/iade`, `/ölümliste`, `/deathlist` | yok | Banlı katillere ait ölüm kayıtların |
 | `/olumliste liste` | | `iade.liste` | **Yetkili menüsü:** listedeki tüm katiller oyuncu kafasıyla, sayfa sayfa (en yakın ban ilk slotta) |
 | `/olumliste gecmis` | | `iade.liste` | **İade geçmişi:** onaylanan, alınan ve silinen iadelerin kaydı (en yeni önce) |
+| `/olumliste ayarlar` | | `iade.ayarlar` | **Koruma ayarları menüsü:** korumaları ve özellikleri oyun içinden aç / kapat, değerleri ayarla |
 | `/olumliste reload` | | `iade.reload` | `/olumlistereload` ile aynı |
 | `/iadelerim` | `/refunds` | yok | Onaylanmış iadeleri alma menüsü |
 | `/iadever <oyuncu>` | | `iade.iadever` | Kayıtları inceleme, onaylama, ölüm yerine ışınlanma |
@@ -36,6 +37,7 @@ metot çağırmaz, bu yüzden 1.20.x ve 1.21.x sunucularında aynı jar çalış
 | `/olumlistereload` | `/ölümlistereload` | `iade.reload` | config.yml ve messages.yml'i yeniler |
 
 `iade.bildirim` yetkisi (varsayılan op), takip edilen bir katil banlandığında sohbette bildirim alır.
+`iade.ayarlar` yetkisi (varsayılan op), `/olumliste ayarlar` menüsünü açar ve config.yml'e yazar.
 `iade.*` hepsini kapsar. Varsayılan: sadece op. Diğer yetkililere LuckPerms ile verin.
 
 ## Ban kontrolü (katmanlı)
@@ -62,6 +64,34 @@ Kafaya tıklamak o oyuncunun ban durumunu yeniden kontrol eder.
 Bir oyuncuyu banladıktan sonra "ölüm listesine girmiş mi?" kontrolü için: menüyü aç, oyuncuyu bul;
 "Banlı değil" görünüyorsa tıkla veya `/olumlistebanla <oyuncu>` kullan.
 
+## Korumalar (1.2.0)
+
+İki koruma vardır; ikisinin de modu aynıdır:
+
+| Mod | Ne yapar |
+|---|---|
+| `isaretle` | Kayıt tutulur; yetkili menülerinde, ban bildiriminde ve Discord embed'inde uyarı gösterilir |
+| `kilitle` | `isaretle` gibi, ayrıca iade **tek tıkla onaylanamaz** (aşağıya bakın) |
+| `engelle` | Ölüm hiç kaydedilmez (iade olmaz), konsola yazılır |
+
+**Aynı IP koruması** (`ip-korumasi`, varsayılan mod `isaretle`): kurban ve katil aynı IP'den bağlıysa tetiklenir.
+IP adresi saklanmaz, yalnızca "aynı IP" işareti tutulur.
+
+**Ard arda öldürme koruması** (`ardarda-koruma`, varsayılan mod `kilitle`): aynı katil, `pencere-dakika` içinde aynı
+kurbanı `esik` kez (yeni ölüm dahil) öldürürse tetiklenir (`kapsam: herkes` ise katilin tüm kurbanları sayılır).
+Eşiğe ulaşılınca zincirdeki **önceki bekleyen kayıtlar da** işaretlenir; onaylanmış kayıtlara dokunulmaz.
+Zincir, sunucu yeniden başlasa da kalıcı kayıtlardan hesaplanır.
+
+**Kilitli kayıtta onay:** Yetkili `/iadever` ile kaydı açar; onay düğmesi turuncu "Elle İncele ve Onayla" olur ve nedenleri
+(ard arda öldürme: N ölüm / M dk, aynı IP) listeler. İlk tık yalnızca uyarır; yetkili ölüm yerine ışınlanıp envantere
+bakarak kaydı inceler, `15 sn` içinde düğmeye **ikinci kez** tıklayınca iade onaylanır. Doğrulama yetkiliye ve kayda özeldir.
+Kurban kendi listesinde durumu "İncelemede (elle onay)" görür. Koruma kapatılır ya da modu `kilitle` dışına alınırsa
+kayıtlar artık kilitli sayılmaz.
+
+**Oyun içi ayarlar:** `/olumliste ayarlar` (veya yetkili menüsündeki pusula) korumaları ve özellikleri açıp kapatır;
+mod, eşik, süre ve kapsamı tıklayarak değiştirir (sol tık ileri, sağ tık geri). Değişiklik config.yml'e **yorumlara
+dokunmadan** yalnızca ilgili satıra yazılır ve hemen uygulanır; yazılamazsa dosya değişmez ve yetkiliye hata gösterilir.
+
 ## Yeni özellikler (1.1.0)
 
 | Özellik | Ne yapar | Ayar bölümü |
@@ -81,6 +111,7 @@ Notlar:
 - **Tıklanabilir mesajlar** sunucu çekirdeği desteklemiyorsa otomatik olarak düz yazıya döner.
 - **Aynı IP** proxy / yerel ağ arkasında herkes aynı adresle görünüyorsa `yoksayilan-adresler` listesine o adresi ekleyin
   (varsayılan: `127.0.0.1`, `::1`). Bu liste alan adı çözümlemez; yalnızca IPv4/IPv6 adresi kabul eder.
+- Ard arda öldürme koruması 1.2.0 ile gelir; eski kayıtlar zincir işareti taşımaz. 1.1.0 veritabanı ilk açılışta otomatik güncellenir.
 - Eski kayıtlar (1.0.0'dan kalanlar) silah / tür / mesafe bilgisi taşımaz; bu satırlar menüde görünmez. Veritabanı şeması
   ilk açılışta otomatik güncellenir.
 

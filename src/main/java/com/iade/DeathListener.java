@@ -12,6 +12,8 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.projectiles.ProjectileSource;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.logging.Level;
 
 public final class DeathListener implements Listener {
@@ -57,6 +59,26 @@ public final class DeathListener implements Listener {
             sameIp = true;
         }
 
+        // Ard arda oldurme korumasi: ayni katil pencere icinde esik kez oldurduyse zincir supheli sayilir.
+        int chainSize = 0;
+        List<DeathRecord> chainEarlier = Collections.emptyList();
+        long now = System.currentTimeMillis();
+        ChainGuard guard = plugin.getChainGuard();
+        if (s.ardardaAktif) {
+            ChainGuard.Result chain = guard.evaluate(s, killer.getUniqueId(), victim.getUniqueId(), now);
+            if (chain.size >= s.ardardaEsik) {
+                if (s.ardardaEngelle) {
+                    guard.track(killer.getUniqueId(), victim.getUniqueId(), now, null);
+                    plugin.getLogger().info(plugin.getMessages().get("ardarda-engellendi-log",
+                            "%kurban%", victim.getName(), "%katil%", killer.getName(),
+                            "%adet%", String.valueOf(chain.size)));
+                    return;
+                }
+                chainSize = chain.size;
+                chainEarlier = chain.earlier;
+            }
+        }
+
         // Envanter ana thread'de klonlanir, serilestirme arka planda yapilir.
         ItemStack[] original = victim.getInventory().getContents();
         ItemStack[] contents = new ItemStack[original.length];
@@ -73,12 +95,19 @@ public final class DeathListener implements Listener {
                 DeathRecord.BEKLENIYOR, 0L,
                 world, loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
         record.sameIp = sameIp;
+        record.ardarda = chainSize;
         if (s.olumBilgisiAktif) {
             record.weapon = DeathInfo.captureWeapon(killer);
             record.damageCause = DeathInfo.captureCause(victim);
             record.distance = DeathInfo.captureDistance(killer, victim);
         }
         plugin.recordDeath(record, contents);
+        if (s.ardardaAktif) {
+            guard.track(killer.getUniqueId(), victim.getUniqueId(), now, record);
+            if (chainSize > 0) {
+                plugin.flagChain(chainEarlier, chainSize);
+            }
+        }
     }
 
     private Player findKiller(Player victim) {

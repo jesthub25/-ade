@@ -147,6 +147,8 @@ olum-bilgisi:
 ip-korumasi:
   aktif: true
   # isaretle : kayıt tutulur, yetkili menülerinde ve bildirimde uyarı gösterilir (önerilen)
+  # kilitle  : isaretle gibi, ayrıca iade tek tıkla onaylanamaz; yetkili kaydı inceleyip onayı
+  #            ikinci kez doğrulamak zorundadır (elle kontrol)
   # engelle  : aynı IP'li ölümler hiç kaydedilmez (iade olmaz)
   mod: "isaretle"
   # Bu adresler asla "aynı IP" sayılmaz. Proxy / yerel ağ arkasında herkes aynı adresle
@@ -154,6 +156,26 @@ ip-korumasi:
   yoksayilan-adresler:
     - "127.0.0.1"
     - "::1"
+
+# ------------------------------------------------------------
+# Ard arda öldürme koruması
+# ------------------------------------------------------------
+# Aynı katil, "pencere-dakika" içinde aynı kurbanı "esik" kez (yeni ölüm dahil) öldürürse bu ölümler
+# şüpheli sayılır (iade sömürüsü / sahte öldürme şüphesi). Eşiğe ulaşıldığında zincirdeki önceki
+# bekleyen kayıtlar da işaretlenir. Katil banlansa bile şüpheli kayıtların iadesi kendiliğinden
+# gitmez: yetkili kaydı (ölüm yerine ışınlanarak, envantere bakarak) elle inceler.
+ardarda-koruma:
+  aktif: true
+  # isaretle : kayıt tutulur, menülerde ve bildirimde uyarı gösterilir
+  # kilitle  : isaretle gibi, ayrıca iade tek tıkla onaylanamaz; yetkili kaydı inceleyip onayı
+  #            ikinci kez doğrulamak zorundadır (önerilen)
+  # engelle  : eşiğe ulaşan ölümler hiç kaydedilmez (iade olmaz)
+  mod: "kilitle"
+  esik: 3                # 2-50: zincir bu uzunluğa ulaşınca koruma devreye girer
+  pencere-dakika: 30     # 1-1440: zincir bu süre içindeki ölümlerden oluşur
+  # ayni-kurban : yalnızca aynı katilin AYNI kurbana ard arda öldürmeleri sayılır (önerilen)
+  # herkes      : katilin bu sürede öldürdüğü tüm oyuncular sayılır (yoğun PvP sunucularında çok fazla işaret üretir)
+  kapsam: "ayni-kurban"
 
 # ------------------------------------------------------------
 # Giriş hatırlatması

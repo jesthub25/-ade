@@ -20,6 +20,7 @@ public final class CommandManager implements CommandExecutor, TabCompleter {
     static final String PERM_SIL = "iade.sil";
     static final String PERM_BANLA = "iade.banla";
     static final String PERM_RELOAD = "iade.reload";
+    static final String PERM_AYARLAR = "iade.ayarlar";
 
     private final Iade plugin;
 
@@ -60,6 +61,9 @@ public final class CommandManager implements CommandExecutor, TabCompleter {
             }
             if (sub.equals("gecmis") || sub.equals("ge\u00e7mi\u015f") || sub.equals("history")) {
                 return history(sender);
+            }
+            if (sub.equals("ayarlar") || sub.equals("ayar") || sub.equals("settings")) {
+                return settings(sender);
             }
             if (sub.equals("reload")) {
                 return reload(sender);
@@ -124,6 +128,21 @@ public final class CommandManager implements CommandExecutor, TabCompleter {
             return true;
         }
         plugin.getMenus().openHistory((Player) sender, 0);
+        return true;
+    }
+
+    /** Koruma / ozellik ayarlari menusu (yetkili). */
+    private boolean settings(CommandSender sender) {
+        Messages m = plugin.getMessages();
+        if (!sender.hasPermission(PERM_AYARLAR)) {
+            sender.sendMessage(m.get("no-permission"));
+            return true;
+        }
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(m.get("only-players"));
+            return true;
+        }
+        plugin.getMenus().openSettings((Player) sender);
         return true;
     }
 
@@ -266,6 +285,9 @@ public final class CommandManager implements CommandExecutor, TabCompleter {
             }
             if (sender.hasPermission(PERM_LISTE) && "gecmis".startsWith(prefix)) {
                 subs.add("gecmis");
+            }
+            if (sender.hasPermission(PERM_AYARLAR) && "ayarlar".startsWith(prefix)) {
+                subs.add("ayarlar");
             }
             if (sender.hasPermission(PERM_RELOAD) && "reload".startsWith(prefix)) {
                 subs.add("reload");

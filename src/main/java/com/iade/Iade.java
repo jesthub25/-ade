@@ -57,6 +57,7 @@ public class Iade extends JavaPlugin {
     private BanService banService;
     private Menus menus;
     private Notifier notifier;
+    private ChainGuard chainGuard;
     private ExecutorService dbExecutor;
     private ExecutorService banExecutor;
     private BukkitTask cleanupTask;
@@ -87,6 +88,7 @@ public class Iade extends JavaPlugin {
         loadRecords();
 
         banService = new BanService(this);
+        chainGuard = new ChainGuard(this);
         menus = new Menus(this);
         notifier = new Notifier(this);
 
@@ -399,6 +401,38 @@ public class Iade extends JavaPlugin {
 
     public Notifier getNotifier() {
         return notifier;
+    }
+
+    ChainGuard getChainGuard() {
+        return chainGuard;
+    }
+
+    /**
+     * Ard arda oldurme zincirindeki, henuz onaylanmamis onceki kayitlari isaretler (zincir uzunlugu daha buyuk
+     * olanlar guncellenir) ve veritabanina yazar. Ana thread'den cagrilir; DB yazimi kuyrukta, onceki
+     * insert'lerden sonra calisir.
+     */
+    void flagChain(List<DeathRecord> earlier, int size) {
+        final List<DeathRecord> changed = new ArrayList<DeathRecord>();
+        for (DeathRecord r : earlier) {
+            if (r.isStatus(DeathRecord.BEKLENIYOR) && r.ardarda < size) {
+                r.ardarda = size;
+                changed.add(r);
+            }
+        }
+        if (changed.isEmpty()) {
+            return;
+        }
+        runDb(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    database.updateArdarda(changed);
+                } catch (Exception e) {
+                    getLogger().log(Level.WARNING, "Ard arda isareti kaydedilemedi", e);
+                }
+            }
+        });
     }
 
     public Map<UUID, List<DeathRecord>> getDeathStorage() {

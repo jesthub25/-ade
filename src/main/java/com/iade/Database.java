@@ -78,7 +78,8 @@ public final class Database {
                     {"silah", "TEXT"},
                     {"sebep_turu", "TEXT"},
                     {"mesafe", "REAL DEFAULT -1"},
-                    {"ayni_ip", "INTEGER DEFAULT 0"}
+                    {"ayni_ip", "INTEGER DEFAULT 0"},
+                    {"ardarda", "INTEGER DEFAULT 0"}
             };
             Set<String> existing = existingColumns();
             for (String[] col : columns) {
@@ -108,10 +109,20 @@ public final class Database {
                         + "esya_sayisi INTEGER DEFAULT 0,"
                         + "olum_zamani INTEGER DEFAULT 0,"
                         + "ban_zamani INTEGER DEFAULT 0,"
-                        + "ayni_ip INTEGER DEFAULT 0)");
+                        + "ayni_ip INTEGER DEFAULT 0,"
+                        + "ardarda INTEGER DEFAULT 0)");
                 idx.executeUpdate("CREATE INDEX IF NOT EXISTS idx_gecmis_zaman ON iade_gecmisi(zaman)");
             } finally {
                 idx.close();
+            }
+            // iade_gecmisi 1.1.0'da ardarda sutunu olmadan olusturuldu
+            if (!existingColumns("iade_gecmisi").contains("ardarda")) {
+                Statement a = conn.createStatement();
+                try {
+                    a.executeUpdate("ALTER TABLE iade_gecmisi ADD COLUMN ardarda INTEGER DEFAULT 0");
+                } finally {
+                    a.close();
+                }
             }
             return true;
         } catch (ClassNotFoundException missing) {
@@ -125,10 +136,14 @@ public final class Database {
     }
 
     private Set<String> existingColumns() throws SQLException {
+        return existingColumns("olumler");
+    }
+
+    private Set<String> existingColumns(String table) throws SQLException {
         Set<String> out = new HashSet<String>();
         Statement st = conn.createStatement();
         try {
-            ResultSet rs = st.executeQuery("PRAGMA table_info(olumler)");
+            ResultSet rs = st.executeQuery("PRAGMA table_info(" + table + ")");
             try {
                 while (rs.next()) {
                     out.add(rs.getString("name").toLowerCase(java.util.Locale.ROOT));
@@ -189,7 +204,7 @@ public final class Database {
     public synchronized List<DeathRecord> loadAll() throws SQLException {
         List<DeathRecord> out = new ArrayList<DeathRecord>();
         String q = "SELECT id, uuid, katil, katil_uuid, sebep, tarih, banli, ban_tarih, ban_kaynak, ban_yetkili, ban_bitis, ban_sure, iade_durumu, iade_tarih,"
-                + " dunya, x, y, z, yaw, pitch, isim, silah, sebep_turu, mesafe, ayni_ip FROM olumler ORDER BY id";
+                + " dunya, x, y, z, yaw, pitch, isim, silah, sebep_turu, mesafe, ayni_ip, ardarda FROM olumler ORDER BY id";
         Statement st = conn.createStatement();
         try {
             ResultSet rs = st.executeQuery(q);
@@ -215,6 +230,7 @@ public final class Database {
                         double dist = rs.getDouble("mesafe");
                         rec.distance = rs.wasNull() ? -1D : dist;
                         rec.sameIp = rs.getInt("ayni_ip") == 1;
+                        rec.ardarda = Math.max(0, rs.getInt("ardarda"));
                         out.add(rec);
                     } catch (IllegalArgumentException bad) {
                         plugin.getLogger().warning("Bozuk kayit atlandi (id=" + rs.getInt("id") + ")");
@@ -244,8 +260,8 @@ public final class Database {
     public synchronized int insert(DeathRecord r, String envanterBase64) throws SQLException {
         String sql = "INSERT INTO olumler (uuid, katil, katil_uuid, sebep, tarih, banli, ban_tarih, ban_kaynak,"
                 + " ban_yetkili, ban_bitis, ban_sure, iade_durumu, iade_tarih, envanter, dunya, x, y, z, yaw, pitch, isim,"
-                + " silah, sebep_turu, mesafe, ayni_ip)"
-                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                + " silah, sebep_turu, mesafe, ayni_ip, ardarda)"
+                + " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         PreparedStatement ps = conn.prepareStatement(sql);
         try {
             ps.setString(1, r.victimUuid.toString());
@@ -273,6 +289,7 @@ public final class Database {
             ps.setString(23, r.damageCause);
             ps.setDouble(24, r.distance);
             ps.setInt(25, r.sameIp ? 1 : 0);
+            ps.setInt(26, Math.max(0, r.ardarda));
             ps.executeUpdate();
         } finally {
             ps.close();
@@ -331,6 +348,27 @@ public final class Database {
         }
     }
 
+    /** Zincirdeki onceki kayitlarin "ard arda" isaretini gunceller. */
+    public synchronized void updateArdarda(List<DeathRecord> records) throws SQLException {
+        if (records.isEmpty()) {
+            return;
+        }
+        PreparedStatement ps = conn.prepareStatement("UPDATE olumler SET ardarda = ? WHERE id = ?");
+        try {
+            for (DeathRecord r : records) {
+                if (r.id < 0) {
+                    continue;
+                }
+                ps.setInt(1, Math.max(0, r.ardarda));
+                ps.setInt(2, r.id);
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        } finally {
+            ps.close();
+        }
+    }
+
     public synchronized void delete(List<Integer> ids) throws SQLException {
         if (ids.isEmpty()) {
             return;
@@ -371,7 +409,7 @@ public final class Database {
 
     public synchronized void insertHistory(HistoryEntry e) throws SQLException {
         PreparedStatement ps = conn.prepareStatement("INSERT INTO iade_gecmisi (zaman, islem, kurban_uuid, kurban, katil,"
-                + " yetkili, esya_sayisi, olum_zamani, ban_zamani, ayni_ip) VALUES (?,?,?,?,?,?,?,?,?,?)");
+                + " yetkili, esya_sayisi, olum_zamani, ban_zamani, ayni_ip, ardarda) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
         try {
             ps.setLong(1, e.time);
             ps.setString(2, e.action);
@@ -383,6 +421,7 @@ public final class Database {
             ps.setLong(8, e.deathTime);
             ps.setLong(9, e.banTime);
             ps.setInt(10, e.sameIp ? 1 : 0);
+            ps.setInt(11, Math.max(0, e.ardarda));
             ps.executeUpdate();
         } finally {
             ps.close();
@@ -393,7 +432,7 @@ public final class Database {
     public synchronized List<HistoryEntry> loadHistory(int offset, int limit) throws SQLException {
         List<HistoryEntry> out = new ArrayList<HistoryEntry>();
         PreparedStatement ps = conn.prepareStatement("SELECT zaman, islem, kurban_uuid, kurban, katil, yetkili, esya_sayisi,"
-                + " olum_zamani, ban_zamani, ayni_ip FROM iade_gecmisi ORDER BY zaman DESC, id DESC LIMIT ? OFFSET ?");
+                + " olum_zamani, ban_zamani, ayni_ip, ardarda FROM iade_gecmisi ORDER BY zaman DESC, id DESC LIMIT ? OFFSET ?");
         try {
             ps.setInt(1, limit);
             ps.setInt(2, offset);
@@ -402,7 +441,7 @@ public final class Database {
                 while (rs.next()) {
                     out.add(new HistoryEntry(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4),
                             rs.getString(5), rs.getString(6), rs.getInt(7), rs.getLong(8), rs.getLong(9),
-                            rs.getInt(10) == 1));
+                            rs.getInt(10) == 1, rs.getInt(11)));
                 }
             } finally {
                 rs.close();

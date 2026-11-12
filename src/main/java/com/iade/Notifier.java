@@ -90,27 +90,33 @@ public final class Notifier {
         }
         Set<String> victims = new HashSet<String>();
         int sameIp = 0;
+        int chain = 0;
         for (DeathRecord r : changed) {
             victims.add(r.victimUuid != null ? r.victimUuid.toString() : String.valueOf(r.victimName));
             if (r.sameIp) {
                 sameIp++;
+            }
+            if (r.ardarda > 0) {
+                chain++;
             }
         }
         final String name = changed.get(0).killerName != null ? changed.get(0).killerName : killerName;
         final int victimCount = victims.size();
         final int recordCount = changed.size();
         final int sameIpCount = sameIp;
+        final int chainCount = chain;
         final String reason = Text.isBlank(info.reason) ? "-" : Text.truncate(info.reason.trim(), 80);
         final String banner = info.banner == null || info.banner.isEmpty() ? "-" : info.banner;
 
         plugin.getLogger().info("Katil banlandi: " + name + " (" + victimCount + " kurban, " + recordCount
-                + " kayıt" + (sameIpCount > 0 ? ", " + sameIpCount + " aynı IP şüphesi" : "") + ")");
+                + " kayıt" + (sameIpCount > 0 ? ", " + sameIpCount + " aynı IP şüphesi" : "")
+                + (chainCount > 0 ? ", " + chainCount + " ard arda öldürme şüphesi" : "") + ")");
 
         plugin.runMain(new Runnable() {
             @Override
             public void run() {
                 try {
-                    sendStaff(s, name, reason, banner, victimCount, recordCount, sameIpCount);
+                    sendStaff(s, name, reason, banner, victimCount, recordCount, sameIpCount, chainCount);
                 } catch (Throwable t) {
                     plugin.getLogger().log(Level.WARNING, "Yetkili bildirimi gonderilemedi", t);
                 }
@@ -119,16 +125,17 @@ public final class Notifier {
 
         if (s.bildirimDiscord) {
             DiscordWebhook.sendBanLog(plugin, s.webhookUrl, name, reason, banner, banSource(info),
-                    banDuration(info, s), victimCount, recordCount, sameIpCount);
+                    banDuration(info, s), victimCount, recordCount, sameIpCount, chainCount);
         }
     }
 
     private void sendStaff(Settings s, String name, String reason, String banner,
-                           int victimCount, int recordCount, int sameIpCount) {
+                           int victimCount, int recordCount, int sameIpCount, int chainCount) {
         Messages m = plugin.getMessages();
         String text = m.get("yetkili-ban-bildirimi", "%oyuncu%", name, "%sebep%", reason, "%banlayan%", banner,
                 "%kurban%", String.valueOf(victimCount), "%adet%", String.valueOf(recordCount));
         String ipText = sameIpCount > 0 ? m.get("yetkili-ip-uyari", "%adet%", String.valueOf(sameIpCount)) : null;
+        String chainText = chainCount > 0 ? m.get("yetkili-ardarda-uyari", "%adet%", String.valueOf(chainCount)) : null;
         String hint = m.get("tiklayin-ipucu");
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (!p.hasPermission(PERM_BILDIRIM)) {
@@ -137,6 +144,9 @@ public final class Notifier {
             Chat.send(p, text, hint, "/olumliste liste", false, s.bildirimTiklanabilir);
             if (ipText != null) {
                 p.sendMessage(ipText);
+            }
+            if (chainText != null) {
+                p.sendMessage(chainText);
             }
             Sounds.play(plugin, p, Sounds.BILDIRIM);
         }

@@ -20,9 +20,11 @@ public final class HistoryEntry {
     /** Katilin ban tespit zamani (onay suresi hesabi icin; bilinmiyorsa 0). */
     public final long banTime;
     public final boolean sameIp;
+    /** Kayit ard arda oldurme supheli olarak isaretliydi (zincir uzunlugu; 0 = degil). */
+    public final int ardarda;
 
     public HistoryEntry(long time, String action, String victimUuid, String victimName, String killerName,
-                        String actor, int itemCount, long deathTime, long banTime, boolean sameIp) {
+                        String actor, int itemCount, long deathTime, long banTime, boolean sameIp, int ardarda) {
         this.time = time;
         this.action = action;
         this.victimUuid = victimUuid;
@@ -33,12 +35,13 @@ public final class HistoryEntry {
         this.deathTime = deathTime;
         this.banTime = banTime;
         this.sameIp = sameIp;
+        this.ardarda = Math.max(0, ardarda);
     }
 
     /** Bir olum kaydindan gecmis satiri uretir. */
     static HistoryEntry of(String action, DeathRecord r, String actor, int itemCount) {
         return new HistoryEntry(System.currentTimeMillis(), action,
                 r.victimUuid == null ? null : r.victimUuid.toString(), r.victimName, r.killerName, actor,
-                Math.max(0, itemCount), r.timestamp, r.banTimestamp, r.sameIp);
+                Math.max(0, itemCount), r.timestamp, r.banTimestamp, r.sameIp, r.ardarda);
     }
 }

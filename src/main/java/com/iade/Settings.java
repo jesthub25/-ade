@@ -63,10 +63,25 @@ public final class Settings {
     public final boolean olumBilgisiAktif;
 
     public final boolean ipKorumasiAktif;
-    /** true: mod "engelle" (ayni IP'li olumler kaydedilmez); false: mod "isaretle". */
+    /** "isaretle" (yalnizca uyari), "kilitle" (uyari + elle onay) veya "engelle" (kaydedilmez). */
+    public final String ipMod;
+    /** true: mod "engelle" (ayni IP'li olumler kaydedilmez). */
     public final boolean ipEngelle;
+    /** true: mod "kilitle" (ayni IP'li kayitlar tek tikla onaylanamaz). */
+    public final boolean ipKilitle;
     /** Kanonik (IPv6 icin tam yazimli, kucuk harfli) adresler: asla "ayni IP" sayilmaz. */
     public final Set<String> ipYoksayilan;
+
+    public final boolean ardardaAktif;
+    /** "isaretle", "kilitle" (varsayilan) veya "engelle". */
+    public final String ardardaMod;
+    public final boolean ardardaEngelle;
+    public final boolean ardardaKilitle;
+    /** Zincir uzunlugu bu sayiya ulasinca (yeni olum dahil) koruma devreye girer. */
+    public final int ardardaEsik;
+    public final int ardardaPencereDakika;
+    /** true: kapsam "herkes" (katilin tum kurbanlari sayilir); false: "ayni-kurban". */
+    public final boolean ardardaTumKurbanlar;
 
     public final boolean girisHatirlatmaAktif;
     public final int girisHatirlatmaGecikmeSaniye;
@@ -135,15 +150,9 @@ public final class Settings {
         this.olumBilgisiAktif = readBool(c, "olum-bilgisi.aktif", true, warn);
 
         this.ipKorumasiAktif = readBool(c, "ip-korumasi.aktif", true, warn);
-        String ipMod = readString(c, "ip-korumasi.mod", "isaretle", warn).trim().toLowerCase(Locale.ROOT);
-        boolean engelle = false;
-        if (ipMod.equals("engelle")) {
-            engelle = true;
-        } else if (!ipMod.equals("isaretle") && !ipMod.equals("i\u015faretle")) {
-            warn.add("ip-korumasi.mod ge\u00e7ersiz ('" + ipMod + "'), 'isaretle' kullan\u0131l\u0131yor "
-                    + "(se\u00e7enekler: isaretle, engelle)");
-        }
-        this.ipEngelle = engelle;
+        this.ipMod = readChoice(c, "ip-korumasi.mod", "isaretle", MODLAR, warn);
+        this.ipEngelle = this.ipMod.equals("engelle");
+        this.ipKilitle = this.ipMod.equals("kilitle");
         Set<String> ignored = new LinkedHashSet<String>();
         for (String raw : readList(c, "ip-korumasi.yoksayilan-adresler", warn)) {
             String canon = DeathInfo.canonicalAddress(raw);
@@ -154,6 +163,14 @@ public final class Settings {
             }
         }
         this.ipYoksayilan = Collections.unmodifiableSet(ignored);
+
+        this.ardardaAktif = readBool(c, "ardarda-koruma.aktif", true, warn);
+        this.ardardaMod = readChoice(c, "ardarda-koruma.mod", "kilitle", MODLAR, warn);
+        this.ardardaEngelle = this.ardardaMod.equals("engelle");
+        this.ardardaKilitle = this.ardardaMod.equals("kilitle");
+        this.ardardaEsik = readInt(c, "ardarda-koruma.esik", 3, 2, 50, warn);
+        this.ardardaPencereDakika = readInt(c, "ardarda-koruma.pencere-dakika", 30, 1, 1440, warn);
+        this.ardardaTumKurbanlar = readChoice(c, "ardarda-koruma.kapsam", "ayni-kurban", KAPSAMLAR, warn).equals("herkes");
 
         this.girisHatirlatmaAktif = readBool(c, "giris-hatirlatma.aktif", true, warn);
         this.girisHatirlatmaGecikmeSaniye = readInt(c, "giris-hatirlatma.gecikme-saniye", 3, 0, 60, warn);
@@ -213,6 +230,32 @@ public final class Settings {
     // ------------------------------------------------------------------------------------
     // Tur dogrulamali okuyucular
     // ------------------------------------------------------------------------------------
+
+    /** Koruma modlari (ayni IP ve ard arda oldurme icin ortak). */
+    public static final List<String> MODLAR = Collections.unmodifiableList(java.util.Arrays.asList("isaretle", "kilitle", "engelle"));
+    public static final List<String> KAPSAMLAR = Collections.unmodifiableList(java.util.Arrays.asList("ayni-kurban", "herkes"));
+
+    /**
+     * Secenekli yazi okur: kucuk/buyuk harf ve Turkce harf (i\u015faretle) fark etmez. Gecersiz degerde ilk secenek
+     * degil, verilen varsayilan kullanilir ve UYARI uretilir.
+     */
+    static String readChoice(FileConfiguration c, String key, String def, List<String> allowed, List<String> warn) {
+        if (!c.isSet(key)) {
+            return def;
+        }
+        Object raw = c.get(key);
+        if (raw instanceof List || raw instanceof org.bukkit.configuration.ConfigurationSection) {
+            warn.add(key + " tek bir yaz\u0131 olmal\u0131, varsay\u0131lan '" + def + "' kullan\u0131l\u0131yor");
+            return def;
+        }
+        String v = String.valueOf(raw).trim().toLowerCase(Locale.ROOT).replace('\u0131', 'i').replace("i\u0307", "i")
+                .replace('\u015f', 's').replace('_', '-');
+        if (allowed.contains(v)) {
+            return v;
+        }
+        warn.add(key + " ge\u00e7ersiz ('" + raw + "'), '" + def + "' kullan\u0131l\u0131yor (se\u00e7enekler: " + String.join(", ", allowed) + ")");
+        return def;
+    }
 
     static int readInt(FileConfiguration c, String key, int def, int min, int max, List<String> warn) {
         if (!c.isSet(key)) {
