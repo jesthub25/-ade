@@ -30,7 +30,7 @@ teleport-success: "%prefix%&aÖlüm konumuna ışınlandınız."
 teleport-fail: "%prefix%&cÖlümün gerçekleştiği dünya bulunamadı!"
 
 # --- Komut kullanımları ---
-usage-olumliste: "%prefix%&cKullanım: /olumliste &7[liste|reload]"
+usage-olumliste: "%prefix%&cKullanım: /olumliste &7[liste|gecmis|reload]"
 usage-iadever: "%prefix%&cKullanım: /iadever <oyuncu>"
 usage-sil: "%prefix%&cKullanım: /olumlistesil <oyuncu>"
 usage-banla: "%prefix%&cKullanım: /olumlistebanla <oyuncu> [sebep]"
@@ -174,3 +174,140 @@ kurban-fazla: "&8+%adet% daha"
 kaynak-komut: "Ban komutu"
 kaynak-giris: "Giriş engeli"
 kaynak-manuel: "Elle işaretlendi"
+
+# ============================================================
+#  Giriş hatırlatması
+# ============================================================
+# %adet% = alınmayı bekleyen iade sayısı, %sure% = en yakın silinmeye kalan süre
+# Tıklanabilir mesajlarda metnin sonuna eklenir (düz yazıya düşülürse eklenmez)
+tiklayin-ipucu: " &8(Tıklayın)"
+giris-hatirlatma: "%prefix%&a%adet% iadeniz onaylandı ve sizi bekliyor! &e%sure% &7içinde &f/iadelerim &7yazarak alın."
+
+# ============================================================
+#  Yetkili bildirimi (iade.bildirim)
+# ============================================================
+# %oyuncu% = banlanan katil, %sebep%, %banlayan%, %kurban% = kaç farklı kurban, %adet% = kaç kayıt
+yetkili-ban-bildirimi: "%prefix%&e%oyuncu% &cbanlandı &8(&f%sebep%&8) &7- &f%kurban% kurbanı &7var &8(&f%adet% kayıt&8). &7İade için: &f/olumliste liste"
+yetkili-ip-uyari: "%prefix%&c! &7Bu kayıtlardan &c%adet% &7tanesi &caynı IP&7'den (şüpheli, iadeden önce inceleyin)."
+ip-engellendi-log: "Aynı IP koruması: %kurban% / %katil% ölümü kaydedilmedi."
+
+# ============================================================
+#  Ölüm bilgisi (yetkili menüleri)
+# ============================================================
+liste-kafa-olum-baslik: "&7Son öldürme ayrıntısı:"
+olum-katil: "&7Katil: &c%katil%"
+olum-sebep: "&7Ban sebebi: &f%sebep%"
+olum-silah: "&7Silah: &f%silah%"
+olum-tur: "&7Ölüm türü: &f%tur%"
+olum-mesafe: "&7Mesafe: &f%mesafe% blok"
+olum-ip-uyari: "&c! Katille AYNI IP'den bağlanmış (şüpheli)"
+liste-kafa-ip-uyari: "&c! Aynı IP şüphesi: &f%adet% &ckayıt"
+silah-el: "Yumruk"
+silah-ozel-ad: "&8\"&e%ad%&8\"&f"
+silah-buyu: "&8(&d%buyu% büyü&8)&f"
+detay-bilgi-buton: "&e&lÖlüm Bilgisi"
+
+# Ölüm türleri (DamageCause adı küçük harfle). Listede olmayan tür, adının düzenlenmiş haliyle gösterilir.
+tur-entity_attack: "Yakın dövüş"
+tur-entity_sweep_attack: "Süpürme saldırısı"
+tur-projectile: "Ok / mermi"
+tur-magic: "Büyü"
+tur-poison: "Zehir"
+tur-wither: "Wither"
+tur-thorns: "Dikenler"
+tur-fire: "Ateş"
+tur-fire_tick: "Yanma"
+tur-lava: "Lav"
+tur-block_explosion: "Patlama"
+tur-entity_explosion: "Patlama"
+tur-fall: "Düşme"
+tur-void: "Boşluk"
+tur-drowning: "Boğulma"
+tur-suffocation: "Boğulma"
+tur-contact: "Temas"
+tur-lightning: "Yıldırım"
+tur-custom: "Özel"
+tur-fly_into_wall: "Duvara çarpma"
+tur-starvation: "Açlık"
+tur-cramming: "Sıkışma"
+tur-dragon_breath: "Ejderha nefesi"
+tur-sonic_boom: "Sonik patlama"
+tur-hot_floor: "Sıcak zemin"
+tur-melting: "Erime"
+tur-freeze: "Donma"
+tur-suicide: "İntihar"
+tur-kill: "Komut"
+tur-world_border: "Dünya sınırı"
+tur-dryout: "Kuruma"
+
+# ============================================================
+#  İade geçmişi
+# ============================================================
+gecmis-kapali: "%prefix%&cİade geçmişi ayarlardan kapatılmış &8(gecmis.aktif: false)&c."
+gecmis-baslik: "&8» &bİade Geçmişi &7%sayfa%/%toplam%"
+gecmis-bos-baslik: "&cGeçmiş boş"
+gecmis-bos-lore:
+  - "&7Henüz kayıtlı bir iade işlemi yok."
+gecmis-onay-baslik: "&aOnaylandı &8- &f%zaman%"
+gecmis-alindi-baslik: "&bTeslim alındı &8- &f%zaman%"
+gecmis-sil-baslik: "&cSilindi &8- &f%zaman%"
+gecmis-lore:
+  - "&7Kurban: &f%kurban%"
+  - "&7Katil: &c%katil%"
+  - "&7İşlemi yapan: &f%yetkili%"
+  - "&7Eşya sayısı: &f%esya%"
+  - "&7Ölüm zamanı: &f%olum_zamani%"
+gecmis-ip-satir: "&c! Aynı IP şüphesi vardı"
+gecmis-yetkili-oyuncu: "Oyuncunun kendisi"
+gecmis-yetkili-yok: "-"
+gecmis-geri-buton: "&e&l« Yetkili Menüsü"
+gecmis-geri-lore:
+  - "&7Katil listesine döner."
+gecmis-buton: "&b&lİade Geçmişi"
+gecmis-buton-lore:
+  - "&7Onaylanan, alınan ve silinen"
+  - "&7iadelerin kaydını gösterir."
+  - ""
+  - "&7Saklama: &f%gun% gün"
+  - "&aTıkla: &7geçmişi aç"
+
+# ============================================================
+#  İstatistikler
+# ============================================================
+istatistik-baslik: "&8» &dİstatistikler"
+istatistik-buton: "&d&lİstatistikler"
+istatistik-buton-lore:
+  - "&7Kayıt sayıları, banlı katiller,"
+  - "&7en çok kurbanı olanlar ve"
+  - "&7ortalama onay süresi."
+  - ""
+  - "&aTıkla: &7istatistikleri aç"
+istatistik-kayitlar-baslik: "&e&lKayıtlar"
+istatistik-kayitlar-lore:
+  - "&7Toplam kayıt: &f%toplam%"
+  - "&7Bekleyen: &e%bekleyen%"
+  - "&7Onaylı (alınmayı bekleyen): &a%onayli%"
+  - "&7Alınan: &b%alinan%"
+istatistik-katiller-baslik: "&c&lKatiller ve Kurbanlar"
+istatistik-katiller-lore:
+  - "&7Takip edilen katil: &f%katil%"
+  - "&7Banlı katil: &c%banli%"
+  - "&7Farklı kurban: &f%kurban%"
+  - "&7Aynı IP şüphesi: &c%ip% &7kayıt"
+istatistik-top-baslik: "&6&lEn Çok Kurbanı Olanlar"
+istatistik-top-satir: "&7%sira%. &f%oyuncu% &8- &c%kurban% kurban &8(&7%adet% kayıt&8)"
+istatistik-top-yok:
+  - "&7Henüz veri yok."
+istatistik-gecmis-baslik: "&b&lGeçmiş &7(Son %gun% gün)"
+istatistik-gecmis-lore:
+  - "&7Onaylanan iade: &a%onay%"
+  - "&7Teslim alınan: &b%alinan%"
+  - "&7Silinen kayıt: &c%silinen%"
+  - "&7Ortalama onay süresi: &f%ortalama%"
+  - "&8(ban tespitinden onaya kadar)"
+istatistik-gecmis-kapali:
+  - "&7İade geçmişi kapalı."
+istatistik-ortalama-yok: "&7Veri yok"
+istatistik-geri-buton: "&e&l« Yetkili Menüsü"
+istatistik-geri-lore:
+  - "&7Katil listesine döner."

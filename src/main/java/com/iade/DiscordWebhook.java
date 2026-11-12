@@ -34,6 +34,56 @@ public final class DiscordWebhook {
         }
     }
 
+    /** Takip edilen bir katil banlandiginda yetkili kanalina embed gonderir. */
+    public static void sendBanLog(final Iade plugin, String url, String killer, String reason, String banner,
+                                  String source, String duration, int victimCount, int recordCount, int sameIpCount) {
+        if (Text.isBlank(url) || !url.trim().startsWith("http")) {
+            return;
+        }
+        final String endpoint = url.trim();
+        final String json = buildBanJson(killer, reason, banner, source, duration, victimCount, recordCount, sameIpCount);
+        try {
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, new Runnable() {
+                @Override
+                public void run() {
+                    post(plugin, endpoint, json);
+                }
+            });
+        } catch (Throwable t) {
+            plugin.getLogger().log(Level.FINE, "Webhook zamanlanamadi", t);
+        }
+    }
+
+    private static String buildBanJson(String killer, String reason, String banner, String source, String duration,
+                                       int victimCount, int recordCount, int sameIpCount) {
+        StringBuilder sb = new StringBuilder(768);
+        sb.append("{\"username\":\"Iade\",");
+        sb.append("\"allowed_mentions\":{\"parse\":[]},");
+        sb.append("\"embeds\":[{");
+        sb.append("\"title\":\"").append(esc("\ud83d\udeab Takip Edilen Katil Banland\u0131")).append("\",");
+        sb.append("\"color\":").append(sameIpCount > 0 ? 15158332 : 15548997).append(',');
+        sb.append("\"fields\":[");
+        field(sb, "\ud83c\udfaf Katil (Hileci)", killer, true);
+        sb.append(',');
+        field(sb, "\ud83d\udee1\ufe0f Banlayan", banner, true);
+        sb.append(',');
+        field(sb, "\ud83d\udd52 Ban S\u00fcresi", duration, true);
+        sb.append(',');
+        field(sb, "\ud83d\udcdd Ban Sebebi", reason, false);
+        sb.append(',');
+        field(sb, "\ud83d\udc80 Kurban Say\u0131s\u0131", victimCount + " oyuncu (" + recordCount + " kay\u0131t)", true);
+        sb.append(',');
+        field(sb, "\ud83d\udd0e Ban Sistemi", source, true);
+        if (sameIpCount > 0) {
+            sb.append(',');
+            field(sb, "\u26a0\ufe0f Ayn\u0131 IP \u015e\u00fcphesi", sameIpCount + " kay\u0131t (iadeden \u00f6nce inceleyin)", false);
+        }
+        sb.append("],");
+        sb.append("\"footer\":{\"text\":\"Iade\"}");
+        sb.append("}]}");
+        return sb.toString();
+    }
+
     private static String buildJson(Iade plugin, String victim, String staff, String killer,
                                     String reason, long deathTime) {
         String date = plugin.getSettings().formatFull(deathTime);

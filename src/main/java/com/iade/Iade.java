@@ -56,6 +56,7 @@ public class Iade extends JavaPlugin {
     private Database database;
     private BanService banService;
     private Menus menus;
+    private Notifier notifier;
     private ExecutorService dbExecutor;
     private ExecutorService banExecutor;
     private BukkitTask cleanupTask;
@@ -87,6 +88,7 @@ public class Iade extends JavaPlugin {
 
         banService = new BanService(this);
         menus = new Menus(this);
+        notifier = new Notifier(this);
 
         CommandManager commands = new CommandManager(this);
         for (String name : COMMANDS) {
@@ -104,6 +106,7 @@ public class Iade extends JavaPlugin {
         pm.registerEvents(menus, this);
         pm.registerEvents(new BanListener(this), this);
         pm.registerEvents(new LoginListener(this), this);
+        pm.registerEvents(new JoinListener(this), this);
 
         scheduleTasks();
 
@@ -364,6 +367,14 @@ public class Iade extends JavaPlugin {
                 getLogger().log(Level.WARNING, "Eski kayitlar silinemedi", t);
             }
         }
+        try {
+            int old = database.deleteHistoryBefore(now - (long) s.gecmisSaklamaGun * 86400000L);
+            if (old > 0) {
+                getLogger().info(old + " eski iade gecmisi satiri silindi.");
+            }
+        } catch (Throwable t) {
+            getLogger().log(Level.WARNING, "Eski iade gecmisi silinemedi", t);
+        }
     }
 
     // ------------------------------------------------------------------------------------
@@ -384,6 +395,10 @@ public class Iade extends JavaPlugin {
 
     public Menus getMenus() {
         return menus;
+    }
+
+    public Notifier getNotifier() {
+        return notifier;
     }
 
     public Map<UUID, List<DeathRecord>> getDeathStorage() {
@@ -588,6 +603,13 @@ public class Iade extends JavaPlugin {
             }
         }
         saveBans(changed);
+        if (!changed.isEmpty() && notifier != null) {
+            try {
+                notifier.banDetected(changed.get(0).killerName, info, changed);
+            } catch (Throwable t) {
+                getLogger().log(Level.WARNING, "Ban bildirimi hazirlanamadi", t);
+            }
+        }
         return changed.size();
     }
 
@@ -678,16 +700,27 @@ public class Iade extends JavaPlugin {
 
     /** Yetkili iadeyi onayladi: durum "Verildi" olur. */
     public void markApproved(DeathRecord rec) {
+        markApproved(rec, null, 0);
+    }
+
+    /** actor: onaylayan yetkili, itemCount: kayittaki esya sayisi (iade gecmisi icin). */
+    public void markApproved(DeathRecord rec, String actor, int itemCount) {
         rec.iadeDurumu = DeathRecord.VERILDI;
         rec.iadeTimestamp = System.currentTimeMillis();
         saveIade(rec);
+        logHistory(HistoryEntry.of(HistoryEntry.ONAY, rec, actor, itemCount));
     }
 
     /** Oyuncu iadeyi aldi: durum "Alindi" olur. */
     public void markTaken(DeathRecord rec) {
+        markTaken(rec, 0);
+    }
+
+    public void markTaken(DeathRecord rec, int itemCount) {
         rec.iadeDurumu = DeathRecord.ALINDI;
         rec.iadeTimestamp = System.currentTimeMillis();
         saveIade(rec);
+        logHistory(HistoryEntry.of(HistoryEntry.ALINDI, rec, null, itemCount));
     }
 
     private void saveIade(final DeathRecord rec) {
@@ -715,6 +748,92 @@ public class Iade extends JavaPlugin {
                     getLogger().log(Level.WARNING, "Envanter okunamadi (id=" + rec.id + ")", e);
                 }
                 final String result = data;
+                runMain(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.accept(result);
+                    }
+                });
+            }
+        });
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Iade gecmisi
+    // ------------------------------------------------------------------------------------
+
+    /** Gecmis satirini DB thread'inde yazar (ayar kapaliysa hicbir sey yapmaz). */
+    private void logHistory(final HistoryEntry entry) {
+        if (!getSettings().gecmisAktif) {
+            return;
+        }
+        runDb(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    database.insertHistory(entry);
+                } catch (Exception e) {
+                    getLogger().log(Level.WARNING, "Iade gecmisi yazilamadi", e);
+                }
+            }
+        });
+    }
+
+    /** Gecmisin bir sayfasi (en yeni once) ve toplam satir sayisi. */
+    public static final class HistoryPage {
+        public final List<HistoryEntry> entries;
+        public final int total;
+        public final int page;
+        public final int pages;
+
+        HistoryPage(List<HistoryEntry> entries, int total, int page, int pages) {
+            this.entries = entries;
+            this.total = total;
+            this.page = page;
+            this.pages = pages;
+        }
+    }
+
+    /** Gecmis sayfasini DB thread'inde okur, sonucu ana thread'de callback'e verir. */
+    public void loadHistoryPage(final int requestedPage, final int pageSize, final Consumer<HistoryPage> callback) {
+        runDb(new Runnable() {
+            @Override
+            public void run() {
+                int total = 0;
+                int pages = 1;
+                int page = 0;
+                List<HistoryEntry> list = new ArrayList<HistoryEntry>();
+                try {
+                    total = database.countHistory();
+                    pages = Math.max(1, (total + pageSize - 1) / pageSize);
+                    page = Math.max(0, Math.min(requestedPage, pages - 1));
+                    list = database.loadHistory(page * pageSize, pageSize);
+                } catch (Exception e) {
+                    getLogger().log(Level.WARNING, "Iade gecmisi okunamadi", e);
+                }
+                final HistoryPage result = new HistoryPage(list, total, page, pages);
+                runMain(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.accept(result);
+                    }
+                });
+            }
+        });
+    }
+
+    /** Gecmis toplamlarini DB thread'inde hesaplar, sonucu ana thread'de callback'e verir. */
+    public void loadHistoryStats(final Consumer<HistoryStats> callback) {
+        runDb(new Runnable() {
+            @Override
+            public void run() {
+                HistoryStats stats = HistoryStats.empty();
+                try {
+                    stats = database.historyStats();
+                } catch (Exception e) {
+                    getLogger().log(Level.WARNING, "Iade gecmisi istatistigi okunamadi", e);
+                }
+                final HistoryStats result = stats;
                 runMain(new Runnable() {
                     @Override
                     public void run() {
@@ -761,6 +880,11 @@ public class Iade extends JavaPlugin {
      * Silinen kayit sayisini dondurur.
      */
     public int deleteRecordsFor(String name) {
+        return deleteRecordsFor(name, null);
+    }
+
+    /** actor: silme komutunu veren yetkili / konsol (iade gecmisine yazilir). */
+    public int deleteRecordsFor(String name, String actor) {
         List<DeathRecord> toRemove = new ArrayList<DeathRecord>();
         UUID victim = resolveVictim(name);
         if (victim != null) {
@@ -791,6 +915,7 @@ public class Iade extends JavaPlugin {
         final List<Integer> ids = new ArrayList<Integer>();
         for (DeathRecord r : toRemove) {
             ids.add(r.id);
+            logHistory(HistoryEntry.of(HistoryEntry.SIL, r, actor, 0));
         }
         runDb(new Runnable() {
             @Override

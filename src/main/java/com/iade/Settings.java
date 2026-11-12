@@ -8,9 +8,11 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -57,6 +59,29 @@ public final class Settings {
     public final int taramaAraligiSaniye;
     public final Set<String> banKomutlari;
     public final Set<String> unbanKomutlari;
+
+    public final boolean olumBilgisiAktif;
+
+    public final boolean ipKorumasiAktif;
+    /** true: mod "engelle" (ayni IP'li olumler kaydedilmez); false: mod "isaretle". */
+    public final boolean ipEngelle;
+    /** Kanonik (IPv6 icin tam yazimli, kucuk harfli) adresler: asla "ayni IP" sayilmaz. */
+    public final Set<String> ipYoksayilan;
+
+    public final boolean girisHatirlatmaAktif;
+    public final int girisHatirlatmaGecikmeSaniye;
+    public final boolean girisHatirlatmaTiklanabilir;
+
+    public final boolean bildirimAktif;
+    public final boolean bildirimTiklanabilir;
+    public final boolean bildirimDiscord;
+
+    public final boolean gecmisAktif;
+    public final int gecmisSaklamaGun;
+
+    public final boolean seslerAktif;
+    /** Olay adi -> ses (sesi bos olan olaylar haritada yoktur). */
+    public final Map<String, SoundSpec> sesler;
 
     /** Ayarlarda bulunan, ama eklentinin calismasini engellemeyen sorunlar (yukleme/reload sirasinda gosterilir). */
     public final List<String> uyarilar;
@@ -107,6 +132,59 @@ public final class Settings {
         this.banKomutlari = lowerSet(readList(c, "ban-sistemi.ban-komutlari", warn));
         this.unbanKomutlari = lowerSet(readList(c, "ban-sistemi.unban-komutlari", warn));
 
+        this.olumBilgisiAktif = readBool(c, "olum-bilgisi.aktif", true, warn);
+
+        this.ipKorumasiAktif = readBool(c, "ip-korumasi.aktif", true, warn);
+        String ipMod = readString(c, "ip-korumasi.mod", "isaretle", warn).trim().toLowerCase(Locale.ROOT);
+        boolean engelle = false;
+        if (ipMod.equals("engelle")) {
+            engelle = true;
+        } else if (!ipMod.equals("isaretle") && !ipMod.equals("i\u015faretle")) {
+            warn.add("ip-korumasi.mod ge\u00e7ersiz ('" + ipMod + "'), 'isaretle' kullan\u0131l\u0131yor "
+                    + "(se\u00e7enekler: isaretle, engelle)");
+        }
+        this.ipEngelle = engelle;
+        Set<String> ignored = new LinkedHashSet<String>();
+        for (String raw : readList(c, "ip-korumasi.yoksayilan-adresler", warn)) {
+            String canon = DeathInfo.canonicalAddress(raw);
+            if (canon != null) {
+                ignored.add(canon);
+            } else if (!Text.isBlank(raw)) {
+                warn.add("ip-korumasi.yoksayilan-adresler: '" + raw.trim() + "' ge\u00e7erli bir IPv4/IPv6 adresi de\u011fil, yok say\u0131ld\u0131");
+            }
+        }
+        this.ipYoksayilan = Collections.unmodifiableSet(ignored);
+
+        this.girisHatirlatmaAktif = readBool(c, "giris-hatirlatma.aktif", true, warn);
+        this.girisHatirlatmaGecikmeSaniye = readInt(c, "giris-hatirlatma.gecikme-saniye", 3, 0, 60, warn);
+        this.girisHatirlatmaTiklanabilir = readBool(c, "giris-hatirlatma.tiklanabilir", true, warn);
+
+        this.bildirimAktif = readBool(c, "yetkili-bildirimi.aktif", true, warn);
+        this.bildirimTiklanabilir = readBool(c, "yetkili-bildirimi.tiklanabilir", true, warn);
+        this.bildirimDiscord = readBool(c, "yetkili-bildirimi.discord", true, warn);
+
+        this.gecmisAktif = readBool(c, "gecmis.aktif", true, warn);
+        this.gecmisSaklamaGun = readInt(c, "gecmis.saklama-gun", 90, 1, 3650, warn);
+
+        this.seslerAktif = readBool(c, "sesler.aktif", true, warn);
+        Map<String, SoundSpec> sounds = new LinkedHashMap<String, SoundSpec>();
+        for (String event : Sounds.EVENTS) {
+            String base = "sesler." + event;
+            String key = readString(c, base + ".ses", Sounds.defaultKey(event), warn).trim();
+            double volume = readDouble(c, base + ".seviye", Sounds.defaultVolume(event), 0.0, 10.0, warn);
+            double pitch = readDouble(c, base + ".perde", Sounds.defaultPitch(event), 0.5, 2.0, warn);
+            if (key.isEmpty()) {
+                continue;
+            }
+            String problem = SoundSpec.problem(key);
+            if (problem != null) {
+                warn.add(base + ".ses " + problem + " (bulunan: '" + key + "'), bu olay sessiz kalacak");
+                continue;
+            }
+            sounds.put(event, new SoundSpec(SoundSpec.normalize(key), (float) volume, (float) pitch));
+        }
+        this.sesler = Collections.unmodifiableMap(sounds);
+
         if (!Text.isBlank(hook) && !hook.trim().startsWith("http")) {
             warn.add("webhook-url 'http' ile ba\u015flam\u0131yor, webhook g\u00f6nderilmeyecek");
         }
@@ -150,6 +228,38 @@ public final class Settings {
         if (v < min) {
             warn.add(key + " en az " + min + " olmal\u0131 (bulunan: " + v + "), varsay\u0131lan " + def + " kullan\u0131l\u0131yor");
             return def;
+        }
+        if (v > max) {
+            warn.add(key + " en fazla " + max + " olabilir (bulunan: " + v + "), " + max + " kullan\u0131l\u0131yor");
+            return max;
+        }
+        return v;
+    }
+
+    /** Ondalikli sayi okur (5, 0.5 ve tirnakli "0.5" kabul edilir); aralik disi degerler uyari ile sinira cekilir. */
+    static double readDouble(FileConfiguration c, String key, double def, double min, double max, List<String> warn) {
+        if (!c.isSet(key)) {
+            return def;
+        }
+        Object raw = c.get(key);
+        Double parsed = null;
+        try {
+            if (raw instanceof Number) {
+                parsed = ((Number) raw).doubleValue();
+            } else if (raw instanceof String) {
+                parsed = Double.valueOf(((String) raw).trim());
+            }
+        } catch (NumberFormatException ignored) {
+            // asagidaki null
+        }
+        if (parsed == null || parsed.isNaN() || parsed.isInfinite()) {
+            warn.add(key + " bir say\u0131 olmal\u0131 (bulunan: '" + raw + "'), varsay\u0131lan " + def + " kullan\u0131l\u0131yor");
+            return def;
+        }
+        double v = parsed;
+        if (v < min) {
+            warn.add(key + " en az " + min + " olmal\u0131 (bulunan: " + v + "), " + min + " kullan\u0131l\u0131yor");
+            return min;
         }
         if (v > max) {
             warn.add(key + " en fazla " + max + " olabilir (bulunan: " + v + "), " + max + " kullan\u0131l\u0131yor");

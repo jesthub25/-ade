@@ -132,6 +132,92 @@ ban-sistemi:
     - "cmi unban"
 
 # ------------------------------------------------------------
+# Ölüm bilgisi
+# ------------------------------------------------------------
+# Ölüm anında katilin elindeki silah (varsa adı ve büyü sayısı), ölüm türü ve katil ile kurban arasındaki
+# mesafe kaydedilir; yetkili menülerinde görünür. Kapatırsanız yeni kayıtlara bu bilgiler yazılmaz.
+olum-bilgisi:
+  aktif: true
+
+# ------------------------------------------------------------
+# Aynı IP koruması
+# ------------------------------------------------------------
+# Kurban ve katil AYNI IP adresinden bağlıysa (hesap çiftleme / iade sömürüsü şüphesi) ölüm şüpheli sayılır.
+# IP adresleri saklanmaz; veritabanına yalnızca "aynı IP" işareti (evet/hayır) yazılır.
+ip-korumasi:
+  aktif: true
+  # isaretle : kayıt tutulur, yetkili menülerinde ve bildirimde uyarı gösterilir (önerilen)
+  # engelle  : aynı IP'li ölümler hiç kaydedilmez (iade olmaz)
+  mod: "isaretle"
+  # Bu adresler asla "aynı IP" sayılmaz. Proxy / yerel ağ arkasında herkes aynı adresle
+  # görünüyorsa buraya ekleyin. (IPv6 yazımı fark etmez)
+  yoksayilan-adresler:
+    - "127.0.0.1"
+    - "::1"
+
+# ------------------------------------------------------------
+# Giriş hatırlatması
+# ------------------------------------------------------------
+# Oyuncu sunucuya girince onaylanmış ama henüz ALINMAMIŞ iadesi varsa kaç adet olduğunu ve
+# ne kadar süre içinde alması gerektiğini söyler. Mesaj tıklanınca /iadelerim açılır.
+giris-hatirlatma:
+  aktif: true
+  gecikme-saniye: 3      # girişten kaç saniye sonra yazılsın (0-60)
+  tiklanabilir: true
+
+# ------------------------------------------------------------
+# Yetkili bildirimi  —  yetki: iade.bildirim
+# ------------------------------------------------------------
+# Takip edilen bir katil banlandığında yetkiye sahip çevrimiçi oyunculara (ve konsola) haber verir:
+# kaç kurbanı var, aynı IP şüphesi var mı. Mesaj tıklanınca /olumliste liste yazısı sohbet satırına yazılır.
+# "discord" true ve webhook-url doluysa aynı bilgi Discord'a da embed olarak gider.
+yetkili-bildirimi:
+  aktif: true
+  tiklanabilir: true
+  discord: true
+
+# ------------------------------------------------------------
+# İade geçmişi  —  /olumliste gecmis  veya yetkili menüsündeki düğme
+# ------------------------------------------------------------
+# Onaylanan, oyuncunun aldığı ve /olumlistesil ile silinen iadeler kaydedilir.
+gecmis:
+  aktif: true
+  saklama-gun: 90        # bu günden eski geçmiş satırları temizlenir (1-3650)
+
+# ------------------------------------------------------------
+# Sesler
+# ------------------------------------------------------------
+# "ses" Minecraft ses anahtarıdır (noktalı yazım, örn. block.chest.open). Boş bırakırsanız o olay sessiz olur.
+# seviye: 0.0-10.0   perde: 0.5-2.0
+# Liste için: https://minecraft.wiki/w/Sounds.json  (Java Edition ses adlarını küçük harf ve noktalı yazın)
+sesler:
+  aktif: true
+  menu-ac:
+    ses: "block.chest.open"
+    seviye: 0.6
+    perde: 1.0
+  sayfa:
+    ses: "ui.button.click"
+    seviye: 0.5
+    perde: 1.2
+  iade-onay:
+    ses: "entity.player.levelup"
+    seviye: 0.7
+    perde: 1.2
+  iade-al:
+    ses: "entity.experience_orb.pickup"
+    seviye: 0.8
+    perde: 1.0
+  hata:
+    ses: "entity.villager.no"
+    seviye: 0.7
+    perde: 1.0
+  bildirim:
+    ses: "block.note_block.pling"
+    seviye: 0.8
+    perde: 1.4
+
+# ------------------------------------------------------------
 # Discord Webhook (boş bırakırsanız webhook gönderilmez)
 # ------------------------------------------------------------
 webhook-url: ""

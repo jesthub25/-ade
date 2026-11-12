@@ -40,9 +40,9 @@ softdepend:
 
 commands:
   olumliste:
-    description: Olum listenizi gosterir. "liste" yetkili menusu, "reload" ayarlari yeniler.
+    description: Olum listenizi gosterir. "liste" yetkili menusu, "gecmis" iade gecmisi, "reload" ayarlari yeniler.
     aliases: [iade, ölümliste, deathlist, olmuliste]
-    usage: /<command> [liste|reload]
+    usage: /<command> [liste|gecmis|reload]
   olumlistesil:
     description: Bir oyuncunun olum listesi verisini siler.
     aliases: [ölümlistesil]
@@ -79,6 +79,9 @@ permissions:
   iade.reload:
     description: /olumlistereload komutunu kullanabilir.
     default: op
+  iade.bildirim:
+    description: Takip edilen bir katil banlandiginda yetkili bildirimi alir.
+    default: op
   iade.*:
     description: Tum Iade yetkileri.
     default: op
@@ -88,3 +91,4 @@ permissions:
       iade.sil: true
       iade.banla: true
       iade.reload: true
+      iade.bildirim: true

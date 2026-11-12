@@ -58,6 +58,9 @@ public final class CommandManager implements CommandExecutor, TabCompleter {
             if (sub.equals("liste") || sub.equals("list")) {
                 return staffList(sender);
             }
+            if (sub.equals("gecmis") || sub.equals("ge\u00e7mi\u015f") || sub.equals("history")) {
+                return history(sender);
+            }
             if (sub.equals("reload")) {
                 return reload(sender);
             }
@@ -102,6 +105,25 @@ public final class CommandManager implements CommandExecutor, TabCompleter {
                 }
             }
         });
+        return true;
+    }
+
+    /** Iade gecmisi (yetkili): onaylanan, alinan ve silinen iadelerin kaydi. */
+    private boolean history(CommandSender sender) {
+        Messages m = plugin.getMessages();
+        if (!sender.hasPermission(PERM_LISTE)) {
+            sender.sendMessage(m.get("no-permission"));
+            return true;
+        }
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(m.get("only-players"));
+            return true;
+        }
+        if (!plugin.getSettings().gecmisAktif) {
+            sender.sendMessage(m.get("gecmis-kapali"));
+            return true;
+        }
+        plugin.getMenus().openHistory((Player) sender, 0);
         return true;
     }
 
@@ -173,7 +195,7 @@ public final class CommandManager implements CommandExecutor, TabCompleter {
             sender.sendMessage(m.get("usage-sil"));
             return true;
         }
-        int removed = plugin.deleteRecordsFor(args[0]);
+        int removed = plugin.deleteRecordsFor(args[0], sender.getName());
         if (removed > 0) {
             sender.sendMessage(m.get("sil-success", "%oyuncu%", args[0], "%adet%", String.valueOf(removed)));
         } else {
@@ -241,6 +263,9 @@ public final class CommandManager implements CommandExecutor, TabCompleter {
             List<String> subs = new ArrayList<String>();
             if (sender.hasPermission(PERM_LISTE) && "liste".startsWith(prefix)) {
                 subs.add("liste");
+            }
+            if (sender.hasPermission(PERM_LISTE) && "gecmis".startsWith(prefix)) {
+                subs.add("gecmis");
             }
             if (sender.hasPermission(PERM_RELOAD) && "reload".startsWith(prefix)) {
                 subs.add("reload");

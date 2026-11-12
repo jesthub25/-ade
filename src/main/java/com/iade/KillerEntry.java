@@ -38,6 +38,10 @@ public final class KillerEntry {
     public int taken;
     /** Bu katilin son kaydinin silinecegi an: kafa bu andan sonra listeden kalkar. */
     public long removeAt;
+    /** Ayni IP supheli (suresi dolmamis) kayit sayisi. */
+    public int sameIp;
+    /** En yeni kayit (silah / olum turu / mesafe bilgisi bundan okunur). */
+    public DeathRecord latest;
     public final List<String> victims = new ArrayList<String>();
     private final Set<String> victimSet = new HashSet<String>();
 
@@ -137,6 +141,12 @@ public final class KillerEntry {
         kills++;
         if (r.timestamp > lastDeath) {
             lastDeath = r.timestamp;
+        }
+        if (latest == null || r.timestamp >= latest.timestamp) {
+            latest = r;
+        }
+        if (r.sameIp) {
+            sameIp++;
         }
         String victim = r.victimName == null ? "?" : r.victimName;
         if (victimSet.add(victim.toLowerCase(Locale.ROOT))) {

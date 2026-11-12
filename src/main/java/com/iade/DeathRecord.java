@@ -44,6 +44,16 @@ public final class DeathRecord {
     public volatile String iadeDurumu;
     public volatile long iadeTimestamp;
 
+    // --- Olum bilgisi (olum aninda bir kez yazilir; eski kayitlarda bos) ---
+    /** Katilin ana eli: "TUR \t ozel ad \t buyu sayisi" ya da "AIR". Bilinmiyorsa null. */
+    public volatile String weapon;
+    /** Olum nedeni (DamageCause adi, orn. ENTITY_ATTACK). Bilinmiyorsa null. */
+    public volatile String damageCause;
+    /** Katil-kurban mesafesi (blok); bilinmiyorsa -1. */
+    public volatile double distance = -1D;
+    /** Kurban ve katil ayni IP'den baglanmisti (IP saklanmaz, yalnizca bu isaret). */
+    public volatile boolean sameIp;
+
     /** Iade alma / islem sirasinda cift tiklamayi engeller. */
     public final AtomicBoolean busy = new AtomicBoolean(false);
 

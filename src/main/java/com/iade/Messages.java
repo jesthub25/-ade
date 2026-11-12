@@ -26,6 +26,11 @@ public final class Messages {
         return Text.replace(Text.color(template.replace("%prefix%", prefix())), kv);
     }
 
+    /** Anahtar tek satirlik bir yazi olarak tanimli mi? (jar varsayilanlari dahil) */
+    public boolean has(String key) {
+        return cfg.isString(key);
+    }
+
     public List<String> list(String key, String... kv) {
         List<String> raw;
         if (cfg.isString(key)) {

@@ -42,7 +42,7 @@ import java.util.logging.Level;
 public final class Menus implements Listener {
 
     enum Type {
-        DEATH_LIST, CLAIM, ADMIN_LIST, ADMIN_DETAIL, STAFF_LIST
+        DEATH_LIST, CLAIM, ADMIN_LIST, ADMIN_DETAIL, STAFF_LIST, HISTORY, STATS
     }
 
     static final class MenuHolder implements InventoryHolder {
@@ -55,6 +55,8 @@ public final class Menus implements Listener {
         final List<KillerEntry> entries;
         final ListFilter filter;
         Inventory inventory;
+        /** HISTORY menusu: gosterilen sayfa ve toplam sayfa sayisi. */
+        int historyPages = 1;
 
         MenuHolder(Type type, UUID owner, UUID victim, List<DeathRecord> records, DeathRecord record, int page,
                    List<KillerEntry> entries, ListFilter filter) {
@@ -105,6 +107,27 @@ public final class Menus implements Listener {
     private static final int STAFF_CLOSE = 49;
     private static final int STAFF_REFRESH = 50;
     private static final int STAFF_NEXT = 53;
+    private static final int STAFF_STATS = 46;
+    private static final int STAFF_HISTORY = 47;
+
+    // --- Detay menusu: olum bilgisi dugmesi ---
+    private static final int SLOT_DETAIL_INFO = 47;
+
+    // --- Iade gecmisi menusu: ust 5 satir kayit, alt satir dugmeler ---
+    private static final int HISTORY_PAGE_SIZE = 45;
+    private static final int HISTORY_PREV = 45;
+    private static final int HISTORY_BACK = 48;
+    private static final int HISTORY_CLOSE = 49;
+    private static final int HISTORY_STATS = 50;
+    private static final int HISTORY_NEXT = 53;
+
+    // --- Istatistik menusu (27 slot) ---
+    private static final int STATS_RECORDS = 10;
+    private static final int STATS_KILLERS = 12;
+    private static final int STATS_TOP = 14;
+    private static final int STATS_HISTORY = 16;
+    private static final int STATS_BACK = 22;
+    private static final int STATS_CLOSE = 26;
 
     private final Iade plugin;
     /** Oyuncunun su an acik olan yetkili menusu (arka plan kontrolu bitince yeniden acilsin mi diye). */
@@ -133,6 +156,10 @@ public final class Menus implements Listener {
     }
 
     private void openList(Player viewer, Type type, UUID victim, int requestedPage) {
+        openList(viewer, type, victim, requestedPage, Sounds.MENU_AC);
+    }
+
+    private void openList(Player viewer, Type type, UUID victim, int requestedPage, String sound) {
         Settings s = plugin.getSettings();
         Messages m = plugin.getMessages();
 
@@ -184,6 +211,7 @@ public final class Menus implements Listener {
         }
 
         viewer.openInventory(inv);
+        Sounds.play(plugin, viewer, sound);
     }
 
     private void openDetail(final Player admin, final UUID victim, final DeathRecord rec) {
@@ -232,7 +260,16 @@ public final class Menus implements Listener {
         }
         inv.setItem(SLOT_DETAIL_CLOSE, simple(Material.BARRIER, m.get("kapat-buton"), m.list("kapat-lore")));
 
+        List<String> info = new ArrayList<String>();
+        info.add(m.get("olum-katil", "%katil%", rec.killerName));
+        if (!Text.isBlank(rec.reason)) {
+            info.add(m.get("olum-sebep", "%sebep%", Text.truncate(rec.reason, 90)));
+        }
+        info.addAll(infoLines(rec, true));
+        inv.setItem(SLOT_DETAIL_INFO, simple(Material.PAPER, m.get("detay-bilgi-buton"), info));
+
         admin.openInventory(inv);
+        Sounds.play(plugin, admin, Sounds.MENU_AC);
     }
 
     // ------------------------------------------------------------------------------------
@@ -245,6 +282,10 @@ public final class Menus implements Listener {
      * banlayan, sure ve silinme zamani gorulur.
      */
     public void openStaffList(Player viewer, ListFilter filter, int requestedPage) {
+        openStaffList(viewer, filter, requestedPage, Sounds.MENU_AC);
+    }
+
+    private void openStaffList(Player viewer, ListFilter filter, int requestedPage, String sound) {
         Settings s = plugin.getSettings();
         Messages m = plugin.getMessages();
 
@@ -289,9 +330,15 @@ public final class Menus implements Listener {
                         "%sonraki%", filterName(filter.next()))));
         inv.setItem(STAFF_CLOSE, simple(Material.BARRIER, m.get("kapat-buton"), m.list("kapat-lore")));
         inv.setItem(STAFF_REFRESH, simple(Material.CLOCK, m.get("yenile-buton"), m.list("yenile-lore")));
+        inv.setItem(STAFF_STATS, simple(Material.NETHER_STAR, m.get("istatistik-buton"), m.list("istatistik-buton-lore")));
+        if (s.gecmisAktif) {
+            inv.setItem(STAFF_HISTORY, simple(Material.BOOK, m.get("gecmis-buton"),
+                    m.list("gecmis-buton-lore", "%gun%", String.valueOf(s.gecmisSaklamaGun))));
+        }
 
         viewer.openInventory(inv);
         staffOpen.put(viewer.getUniqueId(), holder);
+        Sounds.play(plugin, viewer, sound);
     }
 
     private ItemStack buildStaffHead(KillerEntry e) {
@@ -332,9 +379,70 @@ public final class Menus implements Listener {
                 "%silinme%", s.formatShort(e.removeAt),
                 "%silinme_kalan%", remaining(e.removeAt - now)
         };
-        sm.setLore(m.list(e.banned ? "liste-kafa-lore-banli" : "liste-kafa-lore-banlisiz", values));
+        String loreKey = e.banned ? "liste-kafa-lore-banli" : "liste-kafa-lore-banlisiz";
+        List<String> lore = m.list(loreKey, values);
+        List<String> extra = new ArrayList<String>();
+        if (e.latest != null) {
+            List<String> details = infoLines(e.latest, false);
+            if (!details.isEmpty()) {
+                extra.add(m.get("liste-kafa-olum-baslik"));
+                extra.addAll(details);
+            }
+        }
+        if (e.sameIp > 0) {
+            extra.add(m.get("liste-kafa-ip-uyari", "%adet%", String.valueOf(e.sameIp)));
+        }
+        insertAfter(lore, m.list(loreKey), "%son_olum%", extra);
+        sm.setLore(lore);
         head.setItemMeta(sm);
         return head;
+    }
+
+    /**
+     * Olum bilgisi satirlari (silah, olum turu, mesafe, istege bagli ayni IP uyarisi). Bilinmeyen bilgi satiri
+     * yazilmaz; eski kayitlarda hicbiri olmayabilir.
+     */
+    private List<String> infoLines(DeathRecord r, boolean withIpWarning) {
+        Messages m = plugin.getMessages();
+        List<String> out = new ArrayList<String>();
+        String weapon = DeathInfo.weaponText(m, r.weapon);
+        if (weapon != null) {
+            out.add(m.get("olum-silah", "%silah%", weapon));
+        }
+        String cause = DeathInfo.causeText(m, r.damageCause);
+        if (cause != null) {
+            out.add(m.get("olum-tur", "%tur%", cause));
+        }
+        String dist = DeathInfo.distanceText(r.distance);
+        if (dist != null) {
+            out.add(m.get("olum-mesafe", "%mesafe%", dist));
+        }
+        if (withIpWarning && r.sameIp) {
+            out.add(m.get("olum-ip-uyari"));
+        }
+        return out;
+    }
+
+    /**
+     * extra satirlarini, sablonda "marker" iceren satirin hemen altina ekler (sablon bulunamazsa sona).
+     * lore ve template ayni sirada/uzunlukta olmalidir (ikisi de ayni listeden uretilir).
+     */
+    private static void insertAfter(List<String> lore, List<String> template, String marker, List<String> extra) {
+        if (extra.isEmpty()) {
+            return;
+        }
+        int at = -1;
+        for (int i = 0; i < template.size() && i < lore.size(); i++) {
+            if (template.get(i).contains(marker)) {
+                at = i;
+                break;
+            }
+        }
+        if (at < 0) {
+            lore.addAll(extra);
+        } else {
+            lore.addAll(at + 1, extra);
+        }
     }
 
     private String filterName(ListFilter filter) {
@@ -471,8 +579,10 @@ public final class Menus implements Listener {
                     // kafa dokusu ayarlanamazsa duz kafa gosterilir
                 }
                 sm.setDisplayName(m.get("admin-kafa-baslik", "%tarih%", date));
-                sm.setLore(m.list("admin-kafa-lore", "%katil%", r.killerName, "%sebep%", r.reason,
-                        "%iade%", statusText(r)));
+                List<String> lore = m.list("admin-kafa-lore", "%katil%", r.killerName, "%sebep%", r.reason,
+                        "%iade%", statusText(r));
+                insertAfter(lore, m.list("admin-kafa-lore"), "%iade%", infoLines(r, true));
+                sm.setLore(lore);
                 head.setItemMeta(sm);
             }
             return head;
@@ -569,6 +679,10 @@ public final class Menus implements Listener {
                 handleDetailClick(player, holder, raw);
             } else if (holder.type == Type.STAFF_LIST) {
                 handleStaffClick(player, holder, raw);
+            } else if (holder.type == Type.HISTORY) {
+                handleHistoryClick(player, holder, raw);
+            } else if (holder.type == Type.STATS) {
+                handleStatsClick(player, holder, raw);
             } else {
                 handleListClick(player, holder, raw);
             }
@@ -643,12 +757,31 @@ public final class Menus implements Listener {
     private void handleStaffClick(final Player player, final MenuHolder holder, int raw) {
         if (!player.hasPermission(CommandManager.PERM_LISTE)) {
             player.sendMessage(plugin.getMessages().get("no-permission"));
+            Sounds.play(plugin, player, Sounds.HATA);
             closeLater(player);
             return;
         }
         int total = totalPages(holder.entries.size(), STAFF_PAGE_SIZE);
         if (raw == STAFF_CLOSE) {
             closeLater(player);
+        } else if (raw == STAFF_STATS) {
+            later(new Runnable() {
+                @Override
+                public void run() {
+                    if (player.isOnline()) {
+                        openStats(player);
+                    }
+                }
+            });
+        } else if (raw == STAFF_HISTORY && plugin.getSettings().gecmisAktif) {
+            later(new Runnable() {
+                @Override
+                public void run() {
+                    if (player.isOnline()) {
+                        openHistory(player, 0);
+                    }
+                }
+            });
         } else if (raw == STAFF_PREV && holder.page > 0) {
             reopenStaffLater(player, holder.filter, holder.page - 1);
         } else if (raw == STAFF_NEXT && holder.page < total - 1) {
@@ -692,7 +825,7 @@ public final class Menus implements Listener {
             public void run() {
                 checking.remove(id);
                 if (player.isOnline() && staffOpen.get(id) == holder) {
-                    openStaffList(player, holder.filter, holder.page);
+                    openStaffList(player, holder.filter, holder.page, Sounds.SAYFA);
                 }
             }
         };
@@ -705,6 +838,285 @@ public final class Menus implements Listener {
     }
 
     // ------------------------------------------------------------------------------------
+    // Iade gecmisi menusu
+    // ------------------------------------------------------------------------------------
+
+    /** Gecmisin bir sayfasini (en yeni once) veritabanindan okuyup acar. Okuma arka planda yapilir. */
+    public void openHistory(Player viewer, int page) {
+        openHistory(viewer, page, Sounds.MENU_AC);
+    }
+
+    private void openHistory(final Player viewer, int page, final String sound) {
+        plugin.loadHistoryPage(page, HISTORY_PAGE_SIZE, new Consumer<Iade.HistoryPage>() {
+            @Override
+            public void accept(Iade.HistoryPage hp) {
+                if (viewer.isOnline()) {
+                    showHistory(viewer, hp, sound);
+                }
+            }
+        });
+    }
+
+    private void showHistory(Player viewer, Iade.HistoryPage hp, String sound) {
+        Settings s = plugin.getSettings();
+        Messages m = plugin.getMessages();
+        String pageStr = String.valueOf(hp.page + 1);
+        String totalStr = String.valueOf(hp.pages);
+
+        MenuHolder holder = new MenuHolder(Type.HISTORY, viewer.getUniqueId(), null, null, null, hp.page, null, null);
+        holder.historyPages = hp.pages;
+        Inventory inv = Bukkit.createInventory(holder, 54,
+                Text.title(m.get("gecmis-baslik", "%sayfa%", pageStr, "%toplam%", totalStr)));
+        holder.inventory = inv;
+
+        for (int i = 0; i < hp.entries.size() && i < HISTORY_PAGE_SIZE; i++) {
+            inv.setItem(i, buildHistoryItem(hp.entries.get(i)));
+        }
+        if (hp.entries.isEmpty()) {
+            inv.setItem(22, simple(Material.BARRIER, m.get("gecmis-bos-baslik"), m.list("gecmis-bos-lore")));
+        }
+
+        ItemStack glass = glass();
+        for (int i = HISTORY_PAGE_SIZE; i < 54; i++) {
+            inv.setItem(i, glass);
+        }
+        if (hp.page > 0) {
+            inv.setItem(HISTORY_PREV, simple(Material.ARROW, m.get("onceki-sayfa"),
+                    m.list("sayfa-lore", "%sayfa%", pageStr, "%toplam%", totalStr)));
+        }
+        if (hp.page < hp.pages - 1) {
+            inv.setItem(HISTORY_NEXT, simple(Material.ARROW, m.get("sonraki-sayfa"),
+                    m.list("sayfa-lore", "%sayfa%", pageStr, "%toplam%", totalStr)));
+        }
+        inv.setItem(HISTORY_BACK, simple(Material.ARROW, m.get("gecmis-geri-buton"), m.list("gecmis-geri-lore")));
+        inv.setItem(HISTORY_CLOSE, simple(Material.BARRIER, m.get("kapat-buton"), m.list("kapat-lore")));
+        inv.setItem(HISTORY_STATS, simple(Material.NETHER_STAR, m.get("istatistik-buton"), m.list("istatistik-buton-lore")));
+
+        viewer.openInventory(inv);
+        Sounds.play(plugin, viewer, sound);
+    }
+
+    private ItemStack buildHistoryItem(HistoryEntry e) {
+        Settings s = plugin.getSettings();
+        Messages m = plugin.getMessages();
+        String time = s.formatShort(e.time);
+        Material material;
+        String title;
+        if (HistoryEntry.ONAY.equals(e.action)) {
+            material = Material.EMERALD;
+            title = m.get("gecmis-onay-baslik", "%zaman%", time);
+        } else if (HistoryEntry.ALINDI.equals(e.action)) {
+            material = Material.CHEST;
+            title = m.get("gecmis-alindi-baslik", "%zaman%", time);
+        } else {
+            material = Material.BARRIER;
+            title = m.get("gecmis-sil-baslik", "%zaman%", time);
+        }
+        String unknown = m.get("bilinmiyor");
+        String actor;
+        if (HistoryEntry.ALINDI.equals(e.action)) {
+            actor = m.get("gecmis-yetkili-oyuncu");
+        } else {
+            actor = Text.isBlank(e.actor) ? m.get("gecmis-yetkili-yok") : e.actor;
+        }
+        boolean deletion = HistoryEntry.SIL.equals(e.action);
+        List<String> lore = new ArrayList<String>();
+        for (String line : m.list("gecmis-lore")) {
+            if (deletion && line.contains("%esya%")) {
+                continue; // silinen kayitta esya sayisi tutulmaz
+            }
+            lore.add(Text.replace(line,
+                    "%kurban%", orElse(e.victimName, unknown),
+                    "%katil%", orElse(e.killerName, unknown),
+                    "%yetkili%", actor,
+                    "%esya%", String.valueOf(e.itemCount),
+                    "%olum_zamani%", e.deathTime > 0 ? s.formatShort(e.deathTime) : unknown));
+        }
+        if (e.sameIp) {
+            lore.add(m.get("gecmis-ip-satir"));
+        }
+        return simple(material, title, lore);
+    }
+
+    private void handleHistoryClick(final Player player, final MenuHolder holder, int raw) {
+        if (!player.hasPermission(CommandManager.PERM_LISTE)) {
+            player.sendMessage(plugin.getMessages().get("no-permission"));
+            Sounds.play(plugin, player, Sounds.HATA);
+            closeLater(player);
+            return;
+        }
+        if (raw == HISTORY_CLOSE) {
+            closeLater(player);
+        } else if (raw == HISTORY_PREV && holder.page > 0) {
+            historyLater(player, holder.page - 1);
+        } else if (raw == HISTORY_NEXT && holder.page < holder.historyPages - 1) {
+            historyLater(player, holder.page + 1);
+        } else if (raw == HISTORY_BACK) {
+            later(new Runnable() {
+                @Override
+                public void run() {
+                    if (player.isOnline()) {
+                        openStaffList(player, plugin.getSettings().listeFiltre, 0);
+                    }
+                }
+            });
+        } else if (raw == HISTORY_STATS) {
+            later(new Runnable() {
+                @Override
+                public void run() {
+                    if (player.isOnline()) {
+                        openStats(player);
+                    }
+                }
+            });
+        }
+    }
+
+    private void historyLater(final Player player, final int page) {
+        later(new Runnable() {
+            @Override
+            public void run() {
+                if (player.isOnline()) {
+                    openHistory(player, page, Sounds.SAYFA);
+                }
+            }
+        });
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Istatistik menusu
+    // ------------------------------------------------------------------------------------
+
+    /**
+     * Istatistik ekrani. Kayit/katil sayilari bellekteki canli kayitlardan (anlik), gecmis toplamlari ve
+     * ortalama onay suresi veritabanindan (arka planda) hesaplanir.
+     */
+    public void openStats(final Player viewer) {
+        final List<KillerEntry> entries = KillerEntry.build(plugin, ListFilter.TUMU, true);
+        if (!plugin.getSettings().gecmisAktif) {
+            showStats(viewer, entries, null);
+            return;
+        }
+        plugin.loadHistoryStats(new Consumer<HistoryStats>() {
+            @Override
+            public void accept(HistoryStats hs) {
+                if (viewer.isOnline()) {
+                    showStats(viewer, entries, hs);
+                }
+            }
+        });
+    }
+
+    private void showStats(Player viewer, List<KillerEntry> entries, HistoryStats hs) {
+        Settings s = plugin.getSettings();
+        Messages m = plugin.getMessages();
+
+        int records = 0;
+        int pending = 0;
+        int approved = 0;
+        int taken = 0;
+        int sameIp = 0;
+        int bannedKillers = 0;
+        Set<String> victims = new java.util.HashSet<String>();
+        for (KillerEntry e : entries) {
+            records += e.kills;
+            pending += e.pending;
+            approved += e.approved;
+            taken += e.taken;
+            sameIp += e.sameIp;
+            if (e.banned) {
+                bannedKillers++;
+            }
+            for (String v : e.victims) {
+                victims.add(v.toLowerCase(java.util.Locale.ROOT));
+            }
+        }
+
+        List<KillerEntry> top = new ArrayList<KillerEntry>(entries);
+        Collections.sort(top, new Comparator<KillerEntry>() {
+            @Override
+            public int compare(KillerEntry a, KillerEntry b) {
+                int c = Integer.compare(b.victims.size(), a.victims.size());
+                if (c == 0) {
+                    c = Integer.compare(b.kills, a.kills);
+                }
+                if (c == 0) {
+                    c = a.name.compareToIgnoreCase(b.name);
+                }
+                return c;
+            }
+        });
+
+        MenuHolder holder = new MenuHolder(Type.STATS, viewer.getUniqueId(), null, null, null, 0, null, null);
+        Inventory inv = Bukkit.createInventory(holder, 27, Text.title(m.get("istatistik-baslik")));
+        holder.inventory = inv;
+        ItemStack glass = glass();
+        for (int i = 0; i < 27; i++) {
+            inv.setItem(i, glass);
+        }
+
+        inv.setItem(STATS_RECORDS, simple(Material.BOOK, m.get("istatistik-kayitlar-baslik"),
+                m.list("istatistik-kayitlar-lore", "%toplam%", String.valueOf(records),
+                        "%bekleyen%", String.valueOf(pending), "%onayli%", String.valueOf(approved),
+                        "%alinan%", String.valueOf(taken))));
+        inv.setItem(STATS_KILLERS, simple(Material.PLAYER_HEAD, m.get("istatistik-katiller-baslik"),
+                m.list("istatistik-katiller-lore", "%katil%", String.valueOf(entries.size()),
+                        "%banli%", String.valueOf(bannedKillers), "%kurban%", String.valueOf(victims.size()),
+                        "%ip%", String.valueOf(sameIp))));
+
+        List<String> topLore = new ArrayList<String>();
+        for (int i = 0; i < 3 && i < top.size(); i++) {
+            KillerEntry e = top.get(i);
+            topLore.add(m.get("istatistik-top-satir", "%sira%", String.valueOf(i + 1), "%oyuncu%", e.name,
+                    "%kurban%", String.valueOf(e.victims.size()), "%adet%", String.valueOf(e.kills)));
+        }
+        if (topLore.isEmpty()) {
+            topLore.addAll(m.list("istatistik-top-yok"));
+        }
+        inv.setItem(STATS_TOP, simple(Material.NETHER_STAR, m.get("istatistik-top-baslik"), topLore));
+
+        List<String> historyLore;
+        if (hs == null) {
+            historyLore = m.list("istatistik-gecmis-kapali");
+        } else {
+            String avg = hs.averageApprovalMillis >= 0 ? remaining(hs.averageApprovalMillis)
+                    : m.get("istatistik-ortalama-yok");
+            historyLore = m.list("istatistik-gecmis-lore", "%onay%", String.valueOf(hs.approved),
+                    "%alinan%", String.valueOf(hs.claimed), "%silinen%", String.valueOf(hs.deleted),
+                    "%ortalama%", avg);
+        }
+        inv.setItem(STATS_HISTORY, simple(Material.CLOCK,
+                m.get("istatistik-gecmis-baslik", "%gun%", String.valueOf(s.gecmisSaklamaGun)), historyLore));
+
+        inv.setItem(STATS_BACK, simple(Material.ARROW, m.get("istatistik-geri-buton"), m.list("istatistik-geri-lore")));
+        inv.setItem(STATS_CLOSE, simple(Material.BARRIER, m.get("kapat-buton"), m.list("kapat-lore")));
+
+        viewer.openInventory(inv);
+        Sounds.play(plugin, viewer, Sounds.MENU_AC);
+    }
+
+    private void handleStatsClick(final Player player, MenuHolder holder, int raw) {
+        if (!player.hasPermission(CommandManager.PERM_LISTE)) {
+            player.sendMessage(plugin.getMessages().get("no-permission"));
+            Sounds.play(plugin, player, Sounds.HATA);
+            closeLater(player);
+            return;
+        }
+        if (raw == STATS_CLOSE) {
+            closeLater(player);
+        } else if (raw == STATS_BACK) {
+            later(new Runnable() {
+                @Override
+                public void run() {
+                    if (player.isOnline()) {
+                        openStaffList(player, plugin.getSettings().listeFiltre, 0);
+                    }
+                }
+            });
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
     // Yetkili islemleri
     // ------------------------------------------------------------------------------------
 
@@ -713,15 +1125,18 @@ public final class Menus implements Listener {
         DeathRecord rec = holder.record;
         if (!plugin.isLive(rec) || !rec.banned) {
             admin.sendMessage(m.get("refund-not-found"));
+            Sounds.play(plugin, admin, Sounds.HATA);
             closeLater(admin);
             return;
         }
         if (!rec.isStatus(DeathRecord.BEKLENIYOR)) {
             admin.sendMessage(m.get("refund-already-given"));
+            Sounds.play(plugin, admin, Sounds.HATA);
             return;
         }
-        plugin.markApproved(rec);
+        plugin.markApproved(rec, admin.getName(), countItems(holder.inventory));
         admin.sendMessage(m.get("refund-approved"));
+        Sounds.play(plugin, admin, Sounds.IADE_ONAY);
 
         String victimName = victimName(holder.victim, rec);
         DiscordWebhook.sendRefundLog(plugin, plugin.getSettings().webhookUrl, victimName, admin.getName(),
@@ -729,9 +1144,25 @@ public final class Menus implements Listener {
 
         Player target = Bukkit.getPlayer(holder.victim);
         if (target != null && target.isOnline()) {
-            target.sendMessage(m.get("victim-notified"));
+            Chat.send(target, m.get("victim-notified"), m.get("tiklayin-ipucu"), "/iadelerim", true, plugin.getSettings().girisHatirlatmaTiklanabilir);
+            Sounds.play(plugin, target, Sounds.BILDIRIM);
         }
         closeLater(admin);
+    }
+
+    /** Detay menusundeki kayitli envanterin (slot 0-40) dolu slot sayisi. */
+    private static int countItems(Inventory inv) {
+        if (inv == null) {
+            return 0;
+        }
+        int n = 0;
+        for (int i = 0; i <= 40 && i < inv.getSize(); i++) {
+            ItemStack it = inv.getItem(i);
+            if (it != null && it.getType() != Material.AIR) {
+                n++;
+            }
+        }
+        return n;
     }
 
     private void teleport(Player admin, DeathRecord rec) {
@@ -739,6 +1170,7 @@ public final class Menus implements Listener {
         World world = rec.dunya == null ? null : Bukkit.getWorld(rec.dunya);
         if (world == null) {
             admin.sendMessage(m.get("teleport-fail"));
+            Sounds.play(plugin, admin, Sounds.HATA);
             return;
         }
         admin.teleport(new Location(world, rec.x, rec.y, rec.z, rec.yaw, rec.pitch));
@@ -778,28 +1210,31 @@ public final class Menus implements Listener {
         }
 
         List<ItemStack> give;
+        int[] itemCount = new int[1];
         try {
-            give = buildRefundItems(rec, data);
+            give = buildRefundItems(rec, data, itemCount);
         } catch (Throwable t) {
             plugin.getLogger().log(Level.WARNING, "Iade esyalari okunamadi (id=" + rec.id + ")", t);
             player.sendMessage(m.get("iade-hata"));
+            Sounds.play(plugin, player, Sounds.HATA);
             return;
         }
 
         if (give.isEmpty()) {
             player.sendMessage(m.get("iade-esya-yok"));
-            plugin.markTaken(rec);
+            plugin.markTaken(rec, 0);
             closeLater(player);
             return;
         }
 
         if (freeSlots(player) < give.size()) {
             player.sendMessage(m.get("iade-envanter-dolu", "%adet%", String.valueOf(give.size())));
+            Sounds.play(plugin, player, Sounds.HATA);
             return;
         }
 
         // Once durumu kaydet: ortada bir hata olsa bile iade iki kez verilmez.
-        plugin.markTaken(rec);
+        plugin.markTaken(rec, itemCount[0]);
         for (ItemStack stack : give) {
             Map<Integer, ItemStack> left = player.getInventory().addItem(stack);
             for (ItemStack rest : left.values()) {
@@ -807,6 +1242,7 @@ public final class Menus implements Listener {
             }
         }
         player.sendMessage(m.get("refund-success"));
+        Sounds.play(plugin, player, Sounds.IADE_AL);
         closeLater(player);
     }
 
@@ -814,7 +1250,7 @@ public final class Menus implements Listener {
      * Kayitli esyalari 27'ser slotluk shulker kutularina koyar. Zaten shulker kutusu olan esyalar
      * (ic ice shulker olmaz) oldugu gibi ayrica verilir. Dondurulen her oge envanterde bir slot tutar.
      */
-    private List<ItemStack> buildRefundItems(DeathRecord rec, String data) throws Exception {
+    private List<ItemStack> buildRefundItems(DeathRecord rec, String data, int[] itemCountOut) throws Exception {
         List<ItemStack> loose = new ArrayList<ItemStack>();
         List<ItemStack> shulkers = new ArrayList<ItemStack>();
         for (ItemStack it : ItemSerializer.fromBase64(data)) {
@@ -828,6 +1264,7 @@ public final class Menus implements Listener {
             }
         }
 
+        itemCountOut[0] = loose.size() + shulkers.size();
         String boxName = plugin.getMessages().get("iade-shulker-adi", "%tarih%",
                 plugin.getSettings().formatShort(rec.timestamp));
         List<ItemStack> out = new ArrayList<ItemStack>();
@@ -883,7 +1320,7 @@ public final class Menus implements Listener {
             @Override
             public void run() {
                 if (player.isOnline()) {
-                    openList(player, holder.type, holder.victim, page);
+                    openList(player, holder.type, holder.victim, page, Sounds.SAYFA);
                 }
             }
         });
@@ -894,7 +1331,7 @@ public final class Menus implements Listener {
             @Override
             public void run() {
                 if (player.isOnline()) {
-                    openStaffList(player, filter, page);
+                    openStaffList(player, filter, page, Sounds.SAYFA);
                 }
             }
         });

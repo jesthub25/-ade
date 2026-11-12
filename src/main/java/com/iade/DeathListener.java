@@ -46,6 +46,17 @@ public final class DeathListener implements Listener {
             return;
         }
 
+        // Ayni IP korumasi: hesap cifleme / iade somurusu supheli. "engelle" modunda olum hic kaydedilmez.
+        boolean sameIp = false;
+        if (s.ipKorumasiAktif && DeathInfo.sameIp(victim, killer, s.ipYoksayilan)) {
+            if (s.ipEngelle) {
+                plugin.getLogger().info(plugin.getMessages().get("ip-engellendi-log",
+                        "%kurban%", victim.getName(), "%katil%", killer.getName()));
+                return;
+            }
+            sameIp = true;
+        }
+
         // Envanter ana thread'de klonlanir, serilestirme arka planda yapilir.
         ItemStack[] original = victim.getInventory().getContents();
         ItemStack[] contents = new ItemStack[original.length];
@@ -61,6 +72,12 @@ public final class DeathListener implements Listener {
                 "Bekleniyor...", System.currentTimeMillis(), false, 0L, null,
                 DeathRecord.BEKLENIYOR, 0L,
                 world, loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
+        record.sameIp = sameIp;
+        if (s.olumBilgisiAktif) {
+            record.weapon = DeathInfo.captureWeapon(killer);
+            record.damageCause = DeathInfo.captureCause(victim);
+            record.distance = DeathInfo.captureDistance(killer, victim);
+        }
         plugin.recordDeath(record, contents);
     }
 
